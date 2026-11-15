@@ -1,5 +1,5 @@
 """
-Task 1 - Respiratory and laryngeal health: sustained phonation /a:/.
+Task 1 - Respiratory and laryngeal health: sustained phonation.
 
 The headline measure is phonation duration, which the Auracare protocol uses as
 its respiratory safety intercept (critical below 2.5 s). Getting that number
