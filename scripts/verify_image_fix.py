@@ -1,19 +1,4 @@
 """
-Prove the MRI image-classification fix, rather than assert it.
-
-Runs both feature pipelines - the current repository one and the corrected one -
-through the *same* shipped model and scaler, and reports:
-
-  1. Standardised feature magnitudes, |z| = |(x - scaler.mean_) / scaler.scale_|.
-     This is the decisive measurement. The model was trained on standardised
-     features whose |z| is O(1) by construction. A pipeline whose features
-     standardise to O(1000) is feeding the forest inputs it has never seen, and
-     no amount of threshold tuning downstream can repair that.
-
-  2. The predicted class and full probability distribution for each image.
-
-  3. How many distinct classes each pipeline can produce across the inputs.
-
 Usage
     python scripts/verify_image_fix.py [--model PATH] [--images DIR]
 """
