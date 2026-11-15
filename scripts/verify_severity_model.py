@@ -1,16 +1,4 @@
 """
-Quantify what the repository severity model can and cannot do with PHQ-8 input.
-
-The claim being tested: because only 8 of this model's 10,249 features come
-from the PHQ-8, a voice-only screening flow cannot drive it meaningfully. That
-is checkable rather than rhetorical - sweep the PHQ-8 from its floor to its
-ceiling, hold everything else at the training mean, and see how far the output
-moves. A model responding properly to a 0-24 input should move most of 24
-points.
-
-Also prints the metrics stored inside the artifact itself, which are the
-model's own report on its generalisation.
-
 Usage
     python scripts/verify_severity_model.py [--model PATH]
 """
