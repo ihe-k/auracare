@@ -1,14 +1,5 @@
 """
 MRI feature-pipeline correctness.
-
-The headline assertion is quantitative: the corrected pipeline produces
-features that standardise to O(1) under the model's own scaler, while the
-shipped pipeline produces features that standardise to O(10,000). That is the
-difference between feeding a Random Forest inputs from its training
-distribution and feeding it noise.
-
-Tests that need the model artifact skip cleanly when it is not present, so the
-suite still runs on a machine without the 23-40 MB pickles.
 """
 
 from __future__ import annotations
