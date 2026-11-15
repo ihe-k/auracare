@@ -1,19 +1,6 @@
 """
 Generate the Task 4 picture-description stimulus.
 
-Why this is drawn rather than downloaded
-    The draft app pointed at an Unsplash photograph of a dog, which is a weak
-    stimulus (little to describe, no action, no people) and an external
-    dependency that breaks offline. The established clinical pictures - the
-    Cookie Theft card from the Boston Diagnostic Aphasia Examination, the
-    Picnic scene from the WAB - are under copyright and cannot be shipped.
-
-    So this draws an original scene to the same design brief: high contrast,
-    several simultaneous actions, people of different ages, objects in clear
-    spatial relationships, and at least one element that invites inference
-    rather than naming. That gives a connected-speech sample with enough
-    content to measure information density against.
-
 Describable content, for scoring reference
     actions   : boy flying a kite, girl throwing a ball, dog chasing the ball,
                 man reading on a bench, woman pushing a pram, ducks on the pond
