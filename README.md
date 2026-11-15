@@ -87,105 +87,6 @@ route to different places:
 
 ---
 
-## Findings you should read before using the numbers
-
-### 1. The pause-ratio threshold does not work as specified
-
-The protocol escalates when the Task 4 pause ratio exceeds **0.45**. Measured
-across 76 thirty-second windows of the supplied sample recordings:
-
-```
-min 0.238   p05 0.280   median 0.476   p95 0.641   max 0.717
-threshold 0.45  ->  43 of 76 windows trigger  (56.6%)
-```
-
-The threshold sits **below the median of ordinary speech**. As specified it
-cannot distinguish a struggling patient from an ordinary one. It is kept as the
-default because it is the specified value, it is exposed as a sidebar control,
-and `scripts/calibrate_pause_ratio.py` reproduces the measurement against your
-own recordings.
-
-Caveat on the evidence: the sample files are DAIC-WOZ interview sessions with
-conversational turn-taking, which pause more than a picture-description
-monologue. They bound the false-trigger rate from above rather than giving a
-drop-in replacement. Recalibration needs real Task 4 recordings.
-
-### 2. The MRI classifier bug, and why only two classes appeared
-
-`streamlit_inference.py` builds a 44-element feature vector and `np.tile`s it
-~1,147 times to reach the 50,436 inputs the model expects. The model was
-trained on something else entirely: 50,176 flattened pixels, then 4 statistics,
-then a 256-bin histogram. Every input lands in the wrong place.
-
-Measured against the model's own scaler, on the supplied practice images:
-
-| Pipeline | median \|z\| | max \|z\| | beyond 6σ |
-|---|---|---|---|
-| Shipped | 1.26 | **90,447** | 8.3% |
-| Corrected | 0.51 | **5.70** | 0.00% |
-
-Predictions on the two practice images, against the deployed model:
-
-| Image | Ground truth | Shipped | Corrected |
-|---|---|---|---|
-| `Mild_dementia.jpg` | Mild Dementia | Mild Dementia (p=0.495) | Mild Dementia (**p=0.750**) |
-| `Non-demented.jpg` | Non Demented | Non Demented (p=0.480) | Non Demented (**p=0.960**) |
-
-The shipped pipeline's "correct" answers are coin-flips (0.495 vs 0.450 for the
-runner-up). The corrected one is decisive. Reproduce with
-`scripts/verify_image_fix.py`.
-
-**There is a second, separate cause of "only mild and non-demented".** The two
-artifacts differ:
-
-- `artifacts/alzheimer_classifier.pkl.gz` (in the repo) has **5 classes**,
-  including a spurious `PET` — an imaging modality trained as a diagnosis.
-- The GitHub Release asset the deployed app actually downloads has **3 classes**:
-  Mild Dementia, Moderate Dementia, Non Demented.
-
-The deployed model has no "Very mild Dementia" class at all, so the app cannot
-report four stages regardless of the feature fix. The UI now says which stages
-a loaded artifact cannot predict. Fixing that needs retraining.
-
-Finally, the reported 99.3–99.5% test accuracy is not trustworthy: the class
-balance is extreme and the train/test split is random over individual MRI
-slices, so adjacent slices of the same brain appear on both sides. A
-subject-level split is required before that number means anything.
-
-### 3. The severity model, measured rather than assumed
-
-The repository severity model takes 10,249 features. Only 9 are obtainable from
-a voice flow (8 PHQ-8 items plus `Gender`) — 0.09%. The other 10,240 need
-synchronised video (facial keypoints, gaze, pose) and the original DAIC-WOZ
-audio and text-embedding pipelines.
-
-Sweeping the PHQ-8 from floor to ceiling, with the rest imputed at the scaler's
-own training means:
-
-| True PHQ-8 | True band | Model output | Model band | |
-|---|---|---|---|---|
-| 0 | None/minimal | 0.42 | None/minimal | ok |
-| 8 | Mild | 8.13 | Mild | ok |
-| 16 | Moderately severe | 10.78 | Moderate | **under** |
-| 24 | Severe | 12.63 | Moderate | **under** |
-
-It is *not* insensitive — it traverses 51% of the scale and tracks the lower
-half. It saturates above that, compressing both top bands into "Moderate". Both
-errors are under-estimates, the direction that causes under-referral. Per-item
-sensitivity is also lopsided: +4.95 for `PHQ8_NoInterest` against roughly +1 for
-most others and exactly **+0.00 for `PHQ8_Moving`**, which it ignores entirely.
-
-Its own stored metrics: train R² 0.964, validation R² 0.711, **test R² −0.751**
-(worse than always predicting the mean), test MAE 6.01 on a 0–24 scale.
-
-**So the app scores PHQ-8 by summation against published cut-points**, which
-traverses 0–24 exactly by construction. The model adapter exists in
-`auracare/severity_model.py` for comparison, is labelled experimental
-everywhere, and never feeds triage. Reproduce with
-`scripts/verify_severity_model.py`.
-
----
-
 ## Testing
 
 ```bash
@@ -254,12 +155,6 @@ assets/stimulus_park.png    Task 4 picture stimulus
 |---|---|
 | `AURACARE_TRIAGE_REPO` | Path to the Cognitive_AI_Triage checkout (models, samples) |
 | `AURACARE_MODEL_DIR` | Alternative directory holding the `.pkl` artifacts |
-
-Model lookup order is `AURACARE_MODEL_DIR`, then `models/`, then the triage
-repo's `artifacts/` and `predictive_cognitive_final/artifacts/`. `models/` holds
-the GitHub Release classifier — the 3-class artifact the deployed app actually
-downloads — so the local build matches production behaviour by default. It is
-gitignored because it is 40 MB and already published.
 
 Thresholds are editable in the sidebar, exportable to JSON and re-importable.
 The provisional thresholds are kept strictly separate from the published
