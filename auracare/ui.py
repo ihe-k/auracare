@@ -3,7 +3,7 @@ Presentation helpers for the Streamlit app: CSS, animated task cues, spoken
 prompts and the protocol script.
 
 Kept out of `app.py` so the protocol copy - the words the agent actually says -
-sits in one reviewable place rather than scattered through UI code.
+sits in one reviewable place.
 """
 
 from __future__ import annotations
@@ -41,10 +41,6 @@ class TaskScript:
     cue_hint: str
     colour: str
     safety_check: str
-    # Filename of the clinician's Annie animation for this task, inside
-    # assets/animations/. None means no clip exists for the task, which
-    # degrades to the written prompt rather than borrowing another task's
-    # clip; all four tasks now have their own.
     animation: Optional[str] = None
 
 
@@ -54,9 +50,6 @@ TASK_SCRIPTS: List[TaskScript] = [
         domain="Respiratory & laryngeal health",
         window="0:00 - 0:25",
         record_seconds=10,
-        # Clinician's wording, and the text her recorded Annie audio speaks.
-        # The welcome line she wrote sits on the check-in screen separately;
-        # this is her task 1 script.
         prompt=(
             "For our first task, take a deep, comfortable breath. When the "
             "timer starts, say the 'ah' sound and hold it steadily for as "
@@ -78,9 +71,6 @@ TASK_SCRIPTS: List[TaskScript] = [
         domain="Expiratory airway dynamics",
         window="0:25 - 0:45",
         record_seconds=10,
-        # Wording supplied by the clinician, 10 Nov. Kept close to her text:
-        # the instruction is what shapes the manoeuvre, and a cleaner, more
-        # consistent manoeuvre is the one real lever on Task 2 accuracy.
         prompt=(
             "Next up is Task 2. For this task, we're going to evaluate your "
             "exhalation dynamics using your microphone. Please take a deep "
@@ -257,9 +247,6 @@ def level_pill(level: str) -> str:
 
 def agent_bubble(text: str) -> str:
     return (
-        # The agent is Annie, the clinician's named avatar - her scripts say
-        # "I'm Annie from Auracare" and the badge on her artwork reads
-        # "Annie, triage nurse". Auracare is the service, not the speaker.
         '<div class="aura-agent"><strong>Annie</strong><br>'
         f"{html.escape(text)}</div>"
     )
