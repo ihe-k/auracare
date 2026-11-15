@@ -1,14 +1,4 @@
 """
-Streamlit app smoke tests.
-
-Runs the real `app.py` through Streamlit's own test harness so that render
-errors, bad widget arguments and broken state transitions fail here rather
-than in front of the client. Recordings are injected directly into session
-state, because `st.audio_input` has no scripted equivalent.
-
-The two behaviours asserted at the end are the specific defects the client
-asked to have fixed: the emergency banner appearing before anything had been
-measured, and the "check-in complete" message showing during an escalation.
 """
 
 from __future__ import annotations
