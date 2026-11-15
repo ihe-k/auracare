@@ -1,9 +1,8 @@
 """
 Locating the project's own files and the sibling Cognitive_AI_Triage checkout.
 
-The model artifacts and the sample recordings live in the client's existing
-repository, which may sit anywhere relative to this one. Rather than hardcode a
-path - the current `streamlit_inference.py` hardcodes `/tmp`, which cannot work
+The model artifacts and the sample recordings live in an existing
+repository. Rather than hardcode a path - the current `streamlit_inference.py` hardcodes `/tmp`, which cannot work
 on Windows - this searches a short list of plausible locations and lets an
 environment variable override everything.
 
@@ -94,7 +93,7 @@ def find_image_model() -> Optional[Path]:
 
 
 def find_practice_files() -> Optional[Path]:
-    """The sample-recordings directory in the client's repo, or None."""
+    """The sample-recordings directory in the repo, or None."""
     repo = find_triage_repo()
     if repo and (repo / "Practice_Files").is_dir():
         return (repo / "Practice_Files").resolve()
@@ -132,13 +131,7 @@ STIMULUS_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
 
 
 def find_stimulus() -> Optional[Path]:
-    """The Task 4 picture-description stimulus, whatever the client named it.
-
-    The clinician supplies this image, so its name and extension vary. A
-    `Stimulus_park.jpeg` dropped into assets/ beside the expected
-    `stimulus_park.png` previously left Task 4 with no picture and a "generate
-    it" warning, because the lookup was an exact filename match. Any image in
-    assets/ whose name begins with "stimulus" now counts, case ignored.
+    """The Task 4 picture-description stimulus.
     """
     if not ASSETS_DIR.is_dir():
         return None
