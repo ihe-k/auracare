@@ -1,5 +1,5 @@
 """
-Auracare - guided voice screening prototype.
+Auracare: A Guided Vocal Biomarker Screening Prototype.
 
 Run with:  streamlit run app.py
 
