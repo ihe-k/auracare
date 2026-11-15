@@ -1,19 +1,5 @@
 """
-Robustness evidence for the corrected MRI feature pipeline.
-
-`verify_image_fix.py` shows the fix on two ground-truth images. Two images is
-thin evidence, and the client is being asked to trust a clinical-adjacent
-classifier, so this widens the test the only honest way available without more
-labelled data: it perturbs each image in ways that must not change the
-diagnosis - small rotations, brightness and contrast shifts, mild crops and
-sensor-grade noise - and checks the prediction survives.
-
-A correctly standardised pipeline is stable under those perturbations. The
-legacy pipeline is not: its features land tens of thousands of sigma from the
-scaler's training distribution, so the classifier is extrapolating and the
-label it returns is close to arbitrary.
-
-Reported per pipeline:
+Robustness evidence for the MRI feature pipeline.
 
   * accuracy against the filename ground truth, over all variants
   * label stability - how often the variants agree with the clean image
