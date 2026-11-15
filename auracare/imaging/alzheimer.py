@@ -1,37 +1,5 @@
 """
-MRI dementia-stage classification - corrected inference pipeline.
-
-The bug
-    `streamlit_inference.py` in the Cognitive_AI_Triage repository builds a
-    44-element feature vector (4 summary statistics, a 32-bin histogram, 8
-    quadrant statistics) and then `np.tile`s it ~1,147 times to reach the
-    50,436 inputs the model expects. The model was trained on something
-    completely different: 50,176 raw flattened pixels, then 4 statistics, then
-    a 256-bin histogram.
-
-    So `pixel_0`, which during training received the top-left corner pixel of
-    the MRI (near-black, near-zero variance across the training set), receives
-    `mean(image)` at inference. After StandardScaler divides by that feature's
-    tiny training standard deviation, the result is an enormous z-score. Every
-    one of the 50,436 inputs is wrong in this way, the Random Forest is pushed
-    far outside its training distribution, and its output collapses onto one or
-    two leaves - which is why only "Mild Dementia" (class index 0) and
-    "Non Demented" (class index 2) are ever predicted.
-
-The fix
-    `extract_training_features` below reproduces the training-time extraction
-    exactly: same resize, same scaling order, same grayscale conversion, same
-    flatten, same 256-bin histogram with the same normalisation. `verify.py`
-    quantifies the difference by comparing standardised feature magnitudes.
-
-Two further issues found in the shipped artifact, handled here
-    1.  It has five classes, and one of them is "PET" - an imaging modality,
-        not a diagnosis. `drop_non_diagnostic` removes it and renormalises the
-        remaining probabilities.
-    2.  Its reported 99.3 % test accuracy is not trustworthy: 13,445 of 17,295
-        test samples are a single class, and the split is random over
-        individual OASIS slices, so neighbouring slices of the same brain
-        appear in both train and test. `MODEL_CAVEAT` carries this to the UI.
+MRI dementia-stage classification.
 """
 
 from __future__ import annotations
