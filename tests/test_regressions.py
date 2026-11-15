@@ -1,5 +1,5 @@
 """
-Regressions for defects found while testing against the client's real audio.
+Regressions for defects found while testing against real audio.
 
 Each test here corresponds to a bug that the synthetic-signal suite did not
 catch, because synthetic signals are well-behaved and real recordings are not.
