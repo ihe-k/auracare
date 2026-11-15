@@ -161,16 +161,6 @@ The provisional thresholds are kept strictly separate from the published
 clinical reference values, which are display-only and never branched on — so a
 tuned demo number can never be mistaken for a validated cut-off.
 
-### Speech-to-text
-
-Optional. Without it the acoustic measures all still work and the transcript
-measures are reported as unavailable rather than as zero — a failed
-transcription must not read as "no negative language found".
-
-```bash
-pip install faster-whisper
-```
-
 Models download on first use and cache (`tiny.en` ≈ 75 MB, `base.en` ≈ 145 MB).
 Transcription takes roughly as long as the recording on CPU.
 
