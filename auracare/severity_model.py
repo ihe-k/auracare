@@ -1,8 +1,7 @@
 """
 Optional adapter for the repository's pre-trained severity model.
 
-This exists because it was asked for, and it is wired up honestly rather than
-flatteringly. Read this before using its output for anything.
+Please read this before using its output for anything.
 
 What the model is
     A RandomForestRegressor over 10,249 features, trained on DAIC-WOZ. The
