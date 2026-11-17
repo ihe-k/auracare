@@ -1,4 +1,4 @@
-# AuraCare — Vocal Biomarker & Digital Triage Prototype
+# AuraCare: Vocal Biomarker & Digital Triage Prototype
 
 AuraCare is a Streamlit-based digital triage prototype that guides a user through four structured vocal tasks and an optional PHQ-8 self-report questionnaire to extract acoustic, articulatory, and fluency biomarkers alongside simulated FHIR-style clinical summaries.
 
@@ -12,7 +12,7 @@ AuraCare is a Streamlit-based digital triage prototype that guides a user throug
    * **Task 1 — Sustained Phonation (`/aː/`):** Measures vocal fold stability, fundamental frequency ($F_0$), jitter, shimmer, and harmonics-to-noise ratio (HNR).
    * **Task 2 — Expiratory Control (`/sː/`):** Evaluates respiratory support and maximum phonation/fricative duration.
    * **Task 3 — Diadochokinetic Rate (DDK `/pataka/`):** Assesses articulatory motor speed, syllable rate, and regularity.
-   * **Task 4 — Connected Speech (Picture Description):** Analyzes speech fluency, speaking rate, pause patterns, hesitation markers, and optional lexical sentiment.
+   * **Task 4 — Connected Speech (Picture Description):** Analyses speech fluency, speaking rate, pause patterns, hesitation markers, and optional lexical sentiment.
 2. **Multimodal Guidance:** Each step provides pre-rendered visual prompt animations (`intro.mp4`, `task1.mp4`–`task4.mp4`), on-screen pacing cues, and optional browser speech synthesis.
 3. **PHQ-8 Screening & Risk Stratification:** Combines acoustic indicators with optional PHQ-8 responses to grade risk indicators and route users to appropriate informational pathways.
 4. **FHIR-Style Output:** Generates simulated HL7 FHIR-compatible JSON bundles (`Patient`, `Observation`, `QuestionnaireResponse`, and `RiskAssessment` resources) for interoperability testing.
@@ -96,4 +96,4 @@ assets/
 
 * **Real-time WebRTC streaming:** Migrate from turn-based browser recording (`st.audio_input`) to a low-latency WebRTC audio pipeline for continuous voice-activity detection, live patient pacing feedback, and telehealth integration.
 * **Multi-disease vocal biomarker library:** Build a consented, de-identified repository of standardized multi-task vocal samples across respiratory, neurological, and psychiatric conditions to train and validate generalized cross-condition screening models.
-* **Clinical model retraining:** Implement subject-level train/test splits and retrain multi-stage classifiers on standardized clinical cohorts.
+* **Clinical model retraining:** Implement subject-level train/test splits and retrain multi-stage classifiers on standardised clinical cohorts.
