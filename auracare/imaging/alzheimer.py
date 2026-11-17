@@ -1,20 +1,12 @@
 """
 MRI dementia-stage classification.
 
-Restored to Auracare on 17 Nov at the clinician's request, as its own tab.
-It had been removed in task A4, when she asked for imaging to live only in
-Cognitive_AI_Triage; she has since asked for it back here, repaired. The
-model itself is untouched - it is the same artifact her triage project
-trains and uses, loaded from the same pickle.
-
-The repair is the part that failed for her: the tab reported "No classifier
-artifact found" and told her to set an environment variable. A prototype
-should not need one. The artifact now ships inside the project, under
+The artifact ships from the project, under
 `models/`, and the search order falls back to a triage checkout if one is
 beside us, so the tab works out of the box and still picks up a newly trained
 model if she retrains.
 
-Deliberately free of Streamlit, so the classification can be tested without a
+Deliberately free of Streamlit so the classification can be tested without a
 browser.
 """
 
