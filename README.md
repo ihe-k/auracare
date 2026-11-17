@@ -11,9 +11,9 @@ AuraCare is a Streamlit-based digital triage prototype that guides a user throug
 ## What it does
 
 1. **Guided Vocal Protocol (4 Tasks):**
-   * **Task 1 — Sustained Phonation (`/aː/`):** Measures vocal fold stability, fundamental frequency ($F_0$), jitter, shimmer, and harmonics-to-noise ratio (HNR).
-   * **Task 2 — Expiratory Control (`/sː/`):** Evaluates respiratory support and maximum phonation/fricative duration.
-   * **Task 3 — Diadochokinetic Rate (DDK `/pataka/`):** Assesses articulatory motor speed, syllable rate, and regularity.
+   * **Task 1 — Sustained Phonation:** Measures vocal fold stability, fundamental frequency ($F_0$), jitter, shimmer, and harmonics-to-noise ratio (HNR).
+   * **Task 2 — Expiratory Control:** Evaluates respiratory support and maximum phonation/fricative duration.
+   * **Task 3 — Diadochokinetic Rate (DDK):** Assesses articulatory motor speed, syllable rate, and regularity.
    * **Task 4 — Connected Speech (Picture Description):** Analyses speech fluency, speaking rate, pause patterns, hesitation markers, and optional lexical sentiment.
 2. **Multimodal Guidance:** Each step provides pre-rendered visual prompt animations (`intro.mp4`, `task1.mp4`–`task4.mp4`), on-screen pacing cues, and optional browser speech synthesis.
 3. **PHQ-8 Screening & Risk Stratification:** Combines acoustic indicators with optional PHQ-8 responses to grade risk indicators and route users to appropriate informational pathways.
