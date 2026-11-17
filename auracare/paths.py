@@ -1,12 +1,4 @@
 """
-Locating the project's own files and the sibling Cognitive_AI_Triage checkout.
-
-The model artifacts and the sample recordings live in the client's existing
-repository, which may sit anywhere relative to this one. Rather than hardcode a
-path - the current `streamlit_inference.py` hardcodes `/tmp`, which cannot work
-on Windows - this searches a short list of plausible locations and lets an
-environment variable override everything.
-
     AURACARE_TRIAGE_REPO   path to the Cognitive_AI_Triage checkout
     AURACARE_MODEL_DIR     path to a directory holding the .pkl artifacts
 """
