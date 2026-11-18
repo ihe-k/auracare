@@ -1,6 +1,7 @@
 # Auracare: Vocal Biomarker & Digital Triage Prototype
 
-Auracare is a Streamlit-based digital triage prototype that guides a user through four structured vocal tasks and an optional PHQ-8 self-report questionnaire to extract acoustic, articulatory, and fluency biomarkers alongside simulated FHIR-style clinical summaries.
+
+Auracare is an early-detection screening and clinical triage platform that uses real-time vocal biomarkers, cognitive fluency metrics, and mood assessments to identify early signs of cognitive decline (such as Alzheimer's/MCI) and respiratory or mental health deterioration—routing high-risk patients to clinicians before acute crises occur. 
 
 [Link to App](https://auracare-bjocdkbkznmm2j7yc8h5sf.streamlit.app/)
 
