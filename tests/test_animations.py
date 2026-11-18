@@ -1,11 +1,5 @@
 """
 Tests for the Annie animation clips.
-
-The mapping of clip to task came from transcribing each file, not from the
-filenames, which were sequential ids in an order that did not match the tasks.
-These tests pin that mapping so a future re-export cannot silently attach the
-wrong instruction to a task - a patient told to do the wrong manoeuvre would
-invalidate the measurement without anything looking broken.
 """
 
 from __future__ import annotations
