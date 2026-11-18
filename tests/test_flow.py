@@ -5,11 +5,6 @@ These are the three judgements that decide what Annie does next, and all three
 are pure functions on purpose: a wrong answer here is a patient being told to
 record again when they just finished, or a thirty-second answer being thrown
 away, and neither should need a browser to catch.
-
-Two of the tests are regressions against the clinician's own sketch rather
-than against this code, and they are marked as such. Her keyword scan matched
-substrings against the whole transcript, which both fires on ordinary words
-and discards normal Task 4 answers.
 """
 
 from __future__ import annotations
