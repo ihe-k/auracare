@@ -1,23 +1,4 @@
 """
-Why the microphone is not working, answered precisely rather than guessed.
-
-The clinician could not record in the prototype at all. The recorder is
-`st.audio_input`, which is an ordinary browser microphone capture, and every
-browser refuses `getUserMedia` outside a *secure context*: HTTPS, or a page
-served from localhost. Streamlit prints two URLs when it starts,
-
-    Local URL:   http://localhost:8501
-    Network URL: http://192.168.1.5:8501
-
-and only the first of those is a secure context. Opening the second gives a
-page that looks completely normal and a microphone button that silently does
-nothing. There is no error on screen and nothing in the server log, which is
-exactly the failure she described.
-
-`st.context.url` carries the address the browser actually used, so this is a
-diagnosis rather than a guess, and the fix can name the URL to open instead.
-
-Kept free of Streamlit imports so the rules can be tested directly.
 """
 
 from __future__ import annotations
