@@ -1,12 +1,5 @@
 """
 Task 2's candle cue, and the drop-in slot for the clinician's own artwork.
-
-She asked on 16 Nov for Task 2's pacing cue to be the birthday candles her
-own instruction describes ("just like you're blowing out a big birthday
-candle") rather than a plain circle, and chased the artwork again on 18 Nov.
-The file that arrived both times is a single still frame, so the cue here is
-built from the behaviour she described. `find_task_visual` is the seam that
-lets her artwork replace it with a file copy and no code change.
 """
 from __future__ import annotations
 
