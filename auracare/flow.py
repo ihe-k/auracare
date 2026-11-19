@@ -1,13 +1,5 @@
 """
 Conversation phases, response-clip routing and the two input judgements.
-
-Split out of `app.py` so the three decisions that make the check-in feel
-conversational can be tested without a Streamlit runtime: which phase a task
-is in, which clip plays in that phase, and whether what arrived was silence or
-a request for help rather than an attempt at the task.
-
-The clinician sketched this as a `phase` string plus an `AUDIO_FLOW` table.
-Both are here, rebuilt against what the app actually holds.
 """
 
 from __future__ import annotations
