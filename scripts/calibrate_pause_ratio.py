@@ -14,7 +14,7 @@ Caveat, stated in the output as well: these are DAIC-WOZ interview sessions
 containing both the interviewer and the participant, with conversational
 turn-taking gaps. A picture-description monologue should pause less. So this
 establishes an upper bound on the false-trigger rate rather than a drop-in
-replacement threshold - that needs the client's own Task 4 recordings.
+replacement threshold - that needs Task 4 recordings.
 
 Usage
     python scripts/calibrate_pause_ratio.py [--window 30] [--hop 15]
