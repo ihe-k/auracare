@@ -1,18 +1,5 @@
 """
 Annie's clips have to start on their own.
-
-The clinician reported three separate faults on 17 Nov: the affirmations were
-"missing from tasks", and for each task the quiet reminder "doesn't
-automatically play". They were one fault. Chrome, Edge and Safari all ignore
-the `autoplay` attribute on a media element inserted after the document
-finished loading, which is every clip here, because Streamlit swaps media in
-over its websocket on each rerun. Driving Chromium with
-`--autoplay-policy=user-gesture-required`, which is the real default, every
-clip sat at `paused: true, currentTime: 0` with the attribute present.
-
-Calling `play()` by hand is permitted, so `ui.autoplay_nudge` does that. The
-tests below pin the two mistakes that were made while fixing it, because both
-produced a nudge that looked right and played nothing.
 """
 
 from __future__ import annotations
