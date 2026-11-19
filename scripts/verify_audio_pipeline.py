@@ -3,7 +3,7 @@ End-to-end verification of the voice screening pipeline.
 
 Three parts:
 
-  1. The client's real recordings. `Practice_Files/300_AUDIO.wav` and
+  1. `Practice_Files/300_AUDIO.wav` and
      `385_AUDIO.wav` are full DAIC-WOZ interview sessions (10.8 and 8.9
      minutes), so two caveats apply and are printed with the results: they
      contain the interviewer as well as the participant, and they are
