@@ -1,10 +1,5 @@
 """
 The microphone diagnosis.
-
-The clinician could not record at all in the prototype and had to ask us why.
-The cause that fits is the one these rules detect: a page opened on the
-Network URL Streamlit prints, which is plain http on a LAN address, where
-every browser refuses getUserMedia and does so silently.
 """
 
 import pytest
