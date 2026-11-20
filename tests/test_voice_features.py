@@ -172,8 +172,7 @@ def test_phonation_on_silence_reports_zero_with_a_note():
 
 def test_phonation_measures_voice_on_the_segment_only():
     """
-    Perturbation must be computed on the vowel, not the whole file. Measured
-    over 12 s of mostly silence it would be meaningless.
+    
     """
     audio = as_audio(concat(silence(5.0), vowel(120.0, 2.0), silence(5.0)))
     result = analyse_phonation(audio)
