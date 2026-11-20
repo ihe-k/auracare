@@ -1,13 +1,7 @@
 """
 The patient's takeaway, as a PDF they can keep.
 
-Asked for by the clinician on 19 Nov, with the call sites written into her own
-`app.py`: a summary built once when the check-in finishes, and a download
-offered on the completion screen, in the patient's Results tab and in the
-clinical view. The two names her code imports, `generate_diagnostic_summary`
-and `get_pdf_download_component`, are kept exactly as she wrote them.
 
-Three decisions worth stating, because a PDF leaves the building:
 
 *No new dependency.* The pages are drawn with matplotlib, which is already
 pinned for the plots. `reportlab` would have been the obvious reach and would
@@ -26,12 +20,6 @@ its own caveats.
 crisis or emergency pathway, `CRISIS_RESOURCES_UK` is printed in full rather
 than referred to. A patient who needs that number should not have to go back
 into the app to find it.
-
-Her version of the summary took only the PHQ-8 answers and Task 1's three
-voice numbers, because that is what she had to hand at the call site. This one
-accepts the whole assessment as well, so the file can report all four tasks
-and the pathway. Called her way, with two positional arguments, it still
-works and simply has less to say.
 """
 from __future__ import annotations
 
@@ -81,8 +69,6 @@ _VOICE_LABELS = {
     "hnr_db": ("Clarity over background noise (HNR)", "dB"),
 }
 
-# Her call site names them `jitter`, `shimmer` and `hnr`; the feature module
-# names them in full. Both are accepted so her code and this one agree.
 _VOICE_ALIASES = {
     "jitter": "jitter_local_pct",
     "shimmer": "shimmer_local_pct",
@@ -132,7 +118,7 @@ def _phq8_block(phq8_responses: Any, assessment: Any) -> Dict[str, Any]:
             "n_answered": getattr(scored, "n_answered", None),
             "prorated": bool(getattr(scored, "prorated", False)),
         }
-    # Called her way, with the raw answers and nothing else.
+
     answers = [
         v for v in (phq8_responses or {}).values() if _f(v) is not None
     ] if isinstance(phq8_responses, Mapping) else []
@@ -203,15 +189,6 @@ def generate_diagnostic_summary(
 ) -> Dict[str, Any]:
     """
     Everything the takeaway needs, as a plain dictionary.
-
-    A dictionary rather than the assessment object itself, for two reasons. It
-    goes into `st.session_state` and is read back on later reruns, so it must
-    not hold anything that a rerun can invalidate. And it is what the tests
-    assert against: a PDF is awkward to make claims about, a payload is not.
-
-    Nothing in here raises. A summary that cannot be built is worse than a
-    summary with gaps in it, because the gaps are visible on the page and a
-    traceback at the end of a check-in loses the whole run.
     """
     raw = voice_metrics if isinstance(voice_metrics, Mapping) else {}
     metrics = {_VOICE_ALIASES.get(k, k): v for k, v in raw.items()}
@@ -558,15 +535,7 @@ def get_pdf_download_component(
     label: str = "Download your summary (PDF)",
 ) -> str:
     """
-    Her call site: HTML for `components.html`, carrying the file with it.
 
-    The bytes are base64'd into the link rather than fetched from anywhere,
-    so the component has no server to call and works on a machine with no
-    internet. `components.html` renders into a sandboxed iframe, and a
-    sandbox without `allow-downloads` refuses an anchor download silently -
-    so the link also opens the file in a new tab, which is permitted, and the
-    browser's own viewer offers to save it. `app.py` additionally offers a
-    native `st.download_button`, which needs no iframe at all.
     """
     try:
         data = base64.b64encode(render_pdf(summary)).decode("ascii")
@@ -588,9 +557,6 @@ def get_pdf_download_component(
 # ---------------------------------------------------------------------------
 # Emailing it
 # ---------------------------------------------------------------------------
-# A mail client's own limit on how long a `mailto:` body may be. Outlook is
-# the strict one at around 2000 characters for the whole URL, so the body is
-# kept well inside that and the detail stays in the attachment.
 _MAILTO_BUDGET = 1400
 
 
@@ -606,11 +572,6 @@ def summary_subject(summary: Mapping[str, Any]) -> str:
 def summary_as_text(summary: Mapping[str, Any]) -> str:
     """
     The same document as plain text, for the body of an email.
-
-    Short on purpose. A `mailto:` link cannot carry an attachment and some
-    clients truncate a long one, so this is the headline result and the
-    caveat, with the PDF attached by hand for the rest. Writing the whole
-    document in here would be the part that silently goes missing.
     """
     lines: List[str] = []
     who = summary.get("patient_id")
