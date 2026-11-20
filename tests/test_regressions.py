@@ -83,7 +83,7 @@ def test_heavy_clipping_still_blocks():
 
 
 # ---------------------------------------------------------------------------
-# Against the client's actual files
+# 
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def real_wavs():
