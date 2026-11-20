@@ -1,10 +1,5 @@
 """
-The MRI classifier, restored to Auracare on 17 Nov.
-
-The model is the clinician's own, unchanged. What is tested here is that this
-project runs it faithfully: the same feature extraction as her triage repo,
-the class names the artifact carries rather than a guessed list, and the same
-answers her own code gives on the four labelled images she supplied.
+The MRI classifier.
 """
 
 import pathlib
