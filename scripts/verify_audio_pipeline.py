@@ -1,21 +1,6 @@
 """
 End-to-end verification of the voice screening pipeline.
 
-Three parts:
-
-  1. The client's real recordings. `Practice_Files/300_AUDIO.wav` and
-     `385_AUDIO.wav` are full DAIC-WOZ interview sessions (10.8 and 8.9
-     minutes), so two caveats apply and are printed with the results: they
-     contain the interviewer as well as the participant, and they are
-     connected speech rather than the four short task manoeuvres. They are
-     therefore valid input for the Task 4 analysis and not for Tasks 1-3.
-
-  2. A routine screening, end to end, using synthesised task recordings whose
-     true values are known, plus a real 30-second excerpt for Task 4.
-
-  3. An emergency screening, end to end, demonstrating that the respiratory
-     intercept fires and produces a stat dispatch.
-
 Usage
     python scripts/verify_audio_pipeline.py [--no-stt] [--model tiny.en]
 """
@@ -77,7 +62,7 @@ def characterise_real_recordings(use_stt: bool, model_size: str) -> None:
         print(f"no .wav files in {directory}")
         return
 
-    hr("PART 1  THE CLIENT'S REAL RECORDINGS")
+    hr("PART 1  THE REAL RECORDINGS")
     print("These are full DAIC-WOZ interview sessions. Two things follow from")
     print("that, and both are limitations of the input, not of the analysis:")
     print("  * they contain the interviewer's speech as well as the participant's,")
