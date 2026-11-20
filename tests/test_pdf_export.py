@@ -1,11 +1,5 @@
 """
 The patient's takeaway PDF.
-
-Asked for on 19 Nov, with the call sites written into her own `app.py`. The
-tests here are mostly about what the document must not do: contradict itself,
-drop the caveats, invent a number, or take the end of a check-in down with it
-when something is missing. The layout is checked by eye; these pin the
-content and the failure modes.
 """
 from __future__ import annotations
 
