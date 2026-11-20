@@ -29,11 +29,7 @@ def test_nudge_reaches_the_parent_document():
 
 def test_nudge_differs_per_clip():
     """
-    The first mistake. `components.html` is served as an iframe carrying the
-    markup in `srcdoc`; identical markup at the same position is reused on a
-    rerun and the script never runs again. A constant string nudged the task
-    prompt and then sat inert while the affirmation rendered, so the
-    affirmation was silent - exactly the "missing affirmations" report.
+    
     """
     prompt = ui.autoplay_nudge("task1.mp4")
     affirm = ui.autoplay_nudge("task1_affirm.mp4")
@@ -49,10 +45,7 @@ def test_nudge_embeds_the_clip_name():
 
 def test_nudge_keeps_polling_after_finding_a_clip():
     """
-    The second mistake. The first version stopped retrying as soon as any
-    media element was on the page. On a phase change the script renders before
-    the source has been swapped, so it found the *previous* clip - already
-    nudged - and gave up, and the affirmation was still silent.
+    
     """
     script = ui.autoplay_nudge("task1_affirm.mp4")
     assert "if (--attempts > 0)" in script
@@ -171,9 +164,7 @@ def test_the_nonce_changes_when_the_conversation_moves_on(spy):
 
 def test_the_nonce_holds_still_when_the_page_merely_redraws(spy):
     """
-    Streamlit reruns the whole script on any interaction. If that alone
-    changed the nonce, Annie would restart mid-sentence whenever the patient
-    touched a control.
+    
     """
     app.play_clip("task1.mp4")
     app.play_clip("task1.mp4")
@@ -240,11 +231,7 @@ def test_a_clip_that_already_ended_still_counts():
 
 def test_a_leftover_ended_clip_does_not_press_the_button():
     """
-    Only the first script to watch an element may act on finding it already
-    ended. An element carrying an earlier clip's mark is the previous phase's
-    clip still on the page while Streamlit swaps it out; pressing for that
-    one skips the instruction the patient has not heard yet, which is the
-    "it moves on before Annie speaks" half of the 19 Nov report.
+   
     """
     script = ui.advance_when_clip_ends("task2.mp4#7", "I am ready")
     assert "const seen = m.dataset.auracareWatched;" in script
@@ -255,15 +242,7 @@ def test_a_leftover_ended_clip_does_not_press_the_button():
 
 def test_the_nudge_starts_the_clip_it_was_rendered_beside():
     """
-    `play_clip` writes the media element and then this iframe, so the clip
-    this script belongs to is the one directly above it. Finding it by
-    position is what stops a leftover being restarted: a document-wide search
-    also matches the previous phase's clip during the frames where Streamlit
-    still has it on the page, and since the nonce has moved on, the
-    per-element guard reads that leftover as a clip nobody has started yet.
-    The quiet prompt was rewound and played over the top of a new task, just
-    before Annie spoke, which the clinician reported on 19 Nov.
-    """
+        """
     script = ui.autoplay_nudge("task2.mp4#7")
     assert "window.frameElement" in script
     assert "previousElementSibling" in script
@@ -272,9 +251,7 @@ def test_the_nudge_starts_the_clip_it_was_rendered_beside():
 
 def test_the_document_wide_sweep_cannot_restart_a_leftover():
     """
-    The sweep is kept as a fallback for a Streamlit that wraps components
-    differently, but it may only touch a clip nothing has nudged yet. A
-    leftover always carries an earlier nonce, so it is never eligible.
+    
     """
     script = ui.autoplay_nudge("task2.mp4#7")
     sweep = script[script.index("doc.querySelectorAll("):]
@@ -311,9 +288,6 @@ def test_the_label_is_escaped_into_the_script():
 # ---------------------------------------------------------------------------
 def test_the_clip_start_watcher_only_watches_this_rendering():
     """
-    Matched by the mark `autoplay_nudge` leaves, which carries this exact
-    nonce. A leftover from the previous phase has an older one and is
-    ignored - the same trap that had the nudge replaying old clips.
     """
     script = ui.press_when_clip_plays("task2.mp4#7", ui.SPOKE_CONTAINER_CLASS)
     assert 'm.dataset.auracareNudged !== clip' in script
