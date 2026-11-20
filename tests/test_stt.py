@@ -1,10 +1,5 @@
 """
 Negative-language flagging and the transcription abstraction.
-
-The lexicon's known weaknesses - it cannot tell disclosure from quotation,
-negation or hypothetical speech - are asserted here as *documented behaviour*
-rather than quietly hoped away, so nobody later mistakes a flag for a finding.
-The UI surfaces the matched text for exactly this reason.
 """
 
 from __future__ import annotations
