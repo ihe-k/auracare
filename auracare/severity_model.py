@@ -195,11 +195,6 @@ def sensitivity_sweep(
     """
     Quantify how much the PHQ-8 items can move this model's output.
 
-    Sweeps every item together from 0 to 3 (the full 0-24 range of the
-    instrument) and reports the resulting prediction range. If that range is
-    small relative to the 0-24 scale, the model is not meaningfully responding
-    to the only inputs a voice flow can supply - which is the point being
-    tested.
     """
     from .phq8 import band_for_score
 
