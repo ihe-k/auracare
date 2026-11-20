@@ -1,19 +1,5 @@
 """
 The check-in running itself: Annie first, then the recorder, then a pop-up.
-
-Three things the clinician asked for on 18 Nov, which are really one flow:
-
-* arriving at a task should show Annie's words, not "a brief flash of the
-  next task";
-* the ending affirmations should be pop-ups, so a patient scrolling down
-  cannot reach the next task's controls and press one by accident;
-* a finished task should give its affirmation and then start the next task
-  by itself, all the way to the PHQ-8 introduction.
-
-What cannot be asserted here is the browser half: `components.html` does not
-appear in the element tree, so the script that presses a button when Annie
-stops speaking is covered by `test_autoplay.py` for its markup and by the
-Playwright run for its behaviour. These tests cover what Python decides.
 """
 
 from __future__ import annotations
