@@ -1,10 +1,5 @@
 """
 Tests for the conversation phases, the quiet check and the help scan.
-
-These are the three judgements that decide what Annie does next, and all three
-are pure functions on purpose: a wrong answer here is a patient being told to
-record again when they just finished, or a thirty-second answer being thrown
-away, and neither should need a browser to catch.
 """
 
 from __future__ import annotations
@@ -38,10 +33,6 @@ def test_every_task_has_an_affirmation_clip():
 
 def test_three_of_the_four_clarification_clips_are_wired():
     """
-    She sent all four on 17 Nov. Three were transcribed and matched their
-    task. Task 3's gives breathing instructions over a pa-ta-ka task, so it
-    is held until she confirms the Task 3 rework, and that task still degrades
-    to a replay of the prompt. This records the gap rather than hiding it.
     """
     assert flow.media_for(1).clarify == "task1_clarify.mp3"
     assert flow.media_for(2).clarify == "task2_clarify.mp3"
@@ -69,9 +60,6 @@ def test_an_empty_file_is_silence():
 
 def test_bytes_that_will_not_decode_are_silence_rather_than_an_error():
     """
-    A browser that hands back a container the decoder cannot read is the same
-    problem as a muted microphone from the patient's point of view: nothing
-    arrived. They need to be asked again, not shown an error.
     """
     reason = flow.silence_reason(b"x" * 5_000, None, decoded=False)
     assert reason is not None
@@ -170,11 +158,7 @@ def test_substring_matches_do_not_count():
 
 def test_a_long_answer_is_never_read_as_confusion():
     """
-    Regression against the clinician's version, which had both "what" and
-    "how" on the keyword list with no length test. A thirty-second picture
-    description almost always contains one of them, so most valid Task 4
-    recordings would have been discarded before they were measured.
-    """
+     """
     long_answer = " ".join(["what", "how"] + ["word"] * 60)
     assert flow.looks_like_a_plea_for_help(long_answer) is False
 
@@ -202,9 +186,6 @@ def test_punctuation_and_apostrophes_do_not_change_the_answer():
 # ---------------------------------------------------------------------------
 def test_the_quiet_window_always_clears_the_prompt_clip():
     """
-    A timer started when the screen renders fires while Annie is still
-    talking. On Task 2 the clinician's seven-second window would have
-    interrupted her eleven seconds before she finished the instruction.
     """
     for task_id in (1, 2, 3, 4):
         window = flow.quiet_window_seconds(task_id)
