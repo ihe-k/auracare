@@ -1,14 +1,5 @@
 """
 Streamlit app smoke tests.
-
-Runs the real `app.py` through Streamlit's own test harness so that render
-errors, bad widget arguments and broken state transitions fail here rather
-than in front of the client. Recordings are injected directly into session
-state, because `st.audio_input` has no scripted equivalent.
-
-The two behaviours asserted at the end are the specific defects the client
-asked to have fixed: the emergency banner appearing before anything had been
-measured, and the "check-in complete" message showing during an escalation.
 """
 
 from __future__ import annotations
@@ -40,12 +31,9 @@ TIMEOUT = 120
 
 def run_app(**state):
     at = AppTest.from_file(APP, default_timeout=TIMEOUT)
-    # The welcome is a screen of its own now. Tests about a later screen skip
-    # past it; the welcome tests pass welcome_done=False explicitly.
+    
     state.setdefault("welcome_done", True)
-    # Same for Annie's opening instruction. A task holds back its recorder
-    # until she has finished giving it, so a test that wants to record starts
-    # with that over; the tests for the opening itself pass their own set.
+    
     state.setdefault("opening_done", {1, 2, 3, 4})
     for key, value in state.items():
         at.session_state[key] = value
@@ -95,15 +83,7 @@ def test_all_tabs_render():
     at = run_app()
     assert not at.exception
     labels = [t.label for t in at.tabs]
-    # Short labels are deliberate: Streamlit scrolls the tab strip when it
-    # overflows, and the first tab was disappearing off the left edge on a
-    # narrow window, hiding the whole check-in flow.
-    #
-    # The MRI tab was removed in task A4, when the clinician asked for the
-    # imaging work to live only in Cognitive_AI_Triage. She asked for it back
-    # on 17 Nov, in this position, with a screenshot of the tab strip she
-    # wanted. The classifier is still hers and still unmodified; this project
-    # only runs it.
+    
     assert labels == [
         "Check-in",
         "Results",
@@ -162,13 +142,7 @@ def test_views_render_before_any_recording():
     assert "Complete the check-in first" in info
 
 
-# ---------------------------------------------------------------------------
-# The two reported defects
-# ---------------------------------------------------------------------------
-# The verbatim opening of the emergency banner. Matched in full rather than by
-# keyword: the Method & limits tab discusses the phrase "breathing sounds
-# strained" while explaining why a pause-ratio breach must not use it, and a
-# loose substring check picks that explanation up as a false positive.
+
 EMERGENCY_BANNER = "based on your check-in, your breathing sounds strained"
 EMERGENCY_ROUTING = "routing your assessment to emergency triage"
 
@@ -179,8 +153,7 @@ def _error_text(at) -> str:
 
 def test_no_emergency_banner_before_anything_is_measured():
     """
-    Reported defect: the emergency banner appeared at the start of the flow.
-    With no recordings at all, nothing may claim an emergency.
+    
     """
     at = run_app()
     assert not at.exception
@@ -217,8 +190,6 @@ def test_emergency_banner_appears_when_threshold_is_breached():
 
 def test_completion_message_suppressed_during_escalation():
     """
-    Reported defect: "check-in complete" was shown during an escalation,
-    contradicting the emergency banner directly above it.
     """
     at = run_app(step=6, finished=True, results=emergency_results(),
                  phq8_responses={k: 0 for k in ITEM_KEYS})
@@ -282,10 +253,6 @@ def test_patient_id_is_configurable():
 
 def test_task_can_be_skipped_without_a_recording():
     """
-    Without this, a failed or absent recording traps the patient on the task:
-    the continue button only renders once a result exists, so there was no way
-    forward and no explanation of why. A screening tool must not block the
-    whole check-in because one measurement did not work.
     """
     at = run_app()
     assert not at.exception
@@ -351,9 +318,7 @@ def test_a_task_starts_in_the_prompt_phase():
 
 def test_a_phase_does_not_follow_the_patient_into_the_next_task():
     """
-    The clinician's sketch stores `phase` alone. Entering CLARIFY on Task 2
-    would then leave Task 3 showing "here is the task again" before the
-    patient had seen it once.
+    
     """
     at = run_app(step=2, phase="CLARIFY", phase_step=1)
     assert at.session_state["phase"] == "PROMPT"
@@ -577,9 +542,7 @@ def test_the_quiet_watchdog_can_be_switched_off():
 
 def test_only_the_current_prompt_is_shown_on_the_check_in_screen():
     """
-    The screen used to render the whole log, so Task 3 appeared underneath
-    Task 1 and Task 2's bubbles and their telemetry lines. The clinician asked
-    for one instruction at a time.
+    
     """
     import html
 
@@ -632,11 +595,7 @@ def test_the_routine_closing_says_where_the_results_went():
 
 def test_the_closing_screen_does_not_tell_the_patient_they_are_well():
     """
-    The clinician's draft said "your results indicate that everything is
-    mainly fine". A routine pathway means nothing crossed a provisional
-    threshold, not that the patient is well, and the thresholds are
-    engineering values rather than validated cut-offs. She agreed to the
-    present wording on 16 Nov.
+    
     """
     at = closing(**ROUTINE)
     text = " ".join(s.value for s in at.success).lower()
@@ -655,10 +614,7 @@ def test_her_opening_line_is_on_the_routine_closing():
 
 def test_her_opening_line_is_formatted_like_the_tasks():
     """
-    She asked on 17 Nov for the end of the PHQ-8 to match the tasks. It was
-    an H4, which Streamlit sizes as a heading and decorates with an anchor
-    link - visible in the photo she sent. Annie's bubble is what the tasks
-    use, so the closing line uses it too.
+    
     """
     at = closing(**ROUTINE)
     from auracare import ui
@@ -685,10 +641,7 @@ def test_her_opening_line_is_also_on_a_clinician_review():
 
 def test_her_opening_line_is_not_spoken_over_an_emergency():
     """
-    Regression against her script, which prepended the line in all four
-    branches. The emergency case would have said "I'm so happy you completed
-    this screening" immediately before "your breathing sounds strained, we
-    are routing your assessment to emergency triage now".
+    
     """
     from auracare import ui
 
@@ -714,10 +667,7 @@ def test_her_opening_line_is_not_shown_over_a_crisis_message():
 
 def test_the_emergency_closing_renders_at_all():
     """
-    Her script referenced `ui.EMERGENCY_PROPNAT`, which does not exist. It
-    raised AttributeError in the emergency branch alone, so the screen failed
-    only when a patient was in distress and looked healthy in every test that
-    did not breach a threshold. This is that test.
+    
     """
     at = closing(results=emergency_results(),
                  phq8_responses={k: 0 for k in ITEM_KEYS})
@@ -726,9 +676,7 @@ def test_the_emergency_closing_renders_at_all():
 
 def test_the_closing_screen_works_whether_or_not_the_clip_has_arrived():
     """
-    The screen must render with no video rather than warn or break, and must
-    show one the day the file lands. Her two clips arrived on 17 Nov, so the
-    routine ending now has one.
+    
     """
     from auracare import paths
 
@@ -740,9 +688,7 @@ def test_the_closing_screen_works_whether_or_not_the_clip_has_arrived():
 
 def test_the_closing_caption_points_at_tabs_that_exist():
     """
-    It used to name "Your results" and "Clinical / EHR view". The strip was
-    shortened to stop the first tab scrolling off the left edge on a narrow
-    window, and this caption was not updated with it.
+    
     """
     import re
 
@@ -791,9 +737,7 @@ def test_beginning_the_questions_shows_the_first_one_only():
 
 def test_a_question_shows_the_clinical_wording_not_the_spoken_sentence():
     """
-    Her script put `spoken_prompt` in the heading. The first item's spoken
-    form reads out all four response options, which is useful to hear and
-    wrong to read above four buttons that already say them.
+    
     """
     from auracare.phq8 import PHQ8_ITEMS
 
@@ -851,9 +795,6 @@ def test_all_eight_questions_are_reachable_and_the_last_one_finishes():
 
 def test_a_question_can_be_skipped():
     """
-    The previous screen let the patient finish with items unanswered.
-    Removing that silently would trap someone who does not want to answer
-    one, which a screening tool must not do.
     """
     from auracare.phq8 import PHQ8_ITEMS
 
@@ -875,9 +816,7 @@ def test_a_skipped_question_still_scores_by_proration():
 
 def test_the_running_total_is_not_shown_while_answering():
     """
-    A live depression score beside the question being answered invites the
-    patient to manage the number instead of answering honestly. Her design
-    drops it and that is the right call.
+    
     """
     from auracare.phq8 import ITEM_KEYS
 
@@ -899,8 +838,7 @@ def test_a_stale_question_index_is_clamped_rather_than_crashing():
 
 def test_starting_over_resets_the_questionnaire():
     """
-    Her script creates `phq_index` lazily, so "Start over" would have left
-    the patient on question six of the previous run.
+    
     """
     at = questions(phq_index=5)
     reset = [b for b in at.sidebar.button if "Start over" in b.label]
@@ -921,10 +859,6 @@ def test_the_introduction_works_whether_or_not_her_clip_has_arrived():
 
 def test_the_clinical_view_survives_a_session_with_nothing_measured():
     """
-    Found while walking the questionnaire. `pd.DataFrame([])` has no columns,
-    so filtering it on "Level" raised KeyError and took the whole Clinical tab
-    down. Reachable: the check-in lets a patient skip every task when the
-    microphone will not work, and the questionnaire still scores.
     """
     from auracare.phq8 import ITEM_KEYS
 
@@ -965,8 +899,6 @@ def test_every_question_screen_plays_its_own_clip():
 
 def test_the_browser_voice_is_not_used_when_a_clip_exists():
     """
-    Two voices reading the same question at once is worse than either alone,
-    which is why the clip wins and the synthesiser is only the fallback.
     """
     at = questions(phq_index=0)
     assert "phq_q_0" not in at.session_state["spoken"]
@@ -977,8 +909,6 @@ def test_the_browser_voice_is_not_used_when_a_clip_exists():
 # ---------------------------------------------------------------------------
 def test_the_check_in_opens_on_the_welcome_screen():
     """
-    The greeting used to play inside Task 1, so the first screen carried two
-    Annie videos stacked and the recorder sat below the fold.
     """
     from auracare import ui
 
@@ -1022,7 +952,7 @@ def test_starting_over_returns_to_the_welcome():
 
 
 # ---------------------------------------------------------------------------
-# F1. The two closing clips, supplied 17 Nov
+# F1. The two closing clips
 # ---------------------------------------------------------------------------
 def _closing_video_names(at):
     return [v.proto.url for v in at.get("video")]
@@ -1030,10 +960,7 @@ def _closing_video_names(at):
 
 def _clip_asked_for(monkeypatch, **state):
     """
-    Which animation the closing screen looked up.
-
-    Streamlit serves media from a content-hash URL, so the rendered element
-    cannot be traced back to a filename. Recording the lookup can.
+    
     """
     from auracare import paths
 
@@ -1057,8 +984,6 @@ def _clip_asked_for(monkeypatch, **state):
 
 def test_the_routine_ending_plays_the_clip_that_files_the_results(monkeypatch):
     """
-    Her good-news clip says the results have been added to the health records
-    and wishes the patient a good day. That is only true on a routine ending.
     """
     from auracare import paths
 
@@ -1069,10 +994,7 @@ def test_the_routine_ending_plays_the_clip_that_files_the_results(monkeypatch):
 
 def test_a_clinician_review_plays_the_other_clip(monkeypatch):
     """
-    Playing "your results have been added, have a good day" above a banner
-    asking for clinician review would contradict the banner. That is the
-    same mistake her written ending script made, corrected there in
-    section 11 and corrected here for the video.
+    
     """
     from auracare import paths
 
@@ -1090,10 +1012,7 @@ def test_the_two_endings_do_not_play_the_same_clip():
 
 def test_an_emergency_ending_plays_her_emergency_clip():
     """
-    Supplied 18 Nov. It transcribes as "Because your breathing sounds a bit
-    strained today, we are routing your check-in to urgent triage right
-    away... if you feel severely short of breath, please call 999
-    immediately", which is `ui.EMERGENCY_PROMPT` almost line for line.
+    
     """
     at = closing(results=emergency_results(), phq8_responses={k: 0 for k in ITEM_KEYS})
     assert not at.exception
@@ -1102,10 +1021,7 @@ def test_an_emergency_ending_plays_her_emergency_clip():
 
 def test_a_crisis_ending_plays_her_crisis_clip():
     """
-    The second of the two, supplied 18 Nov. It transcribes as "Some of what
-    you shared suggests you're going through a really difficult time... the
-    Samaritans are available free on 116 123, anytime", which is the number
-    on the banner beside it.
+    
     """
     at = closing(
         results=healthy_results(
@@ -1159,8 +1075,7 @@ def test_the_emergency_ending_asks_for_the_emergency_clip(monkeypatch):
 
 def test_the_crisis_ending_asks_for_a_clip_of_its_own(monkeypatch):
     """
-    Wired ahead of the recording, so the file she sends next drops into
-    assets/animations/ and plays with no code change.
+    
     """
     from auracare import paths
 
@@ -1170,10 +1085,7 @@ def test_the_crisis_ending_asks_for_a_clip_of_its_own(monkeypatch):
 
 def test_the_crisis_ending_never_borrows_the_emergency_clip(monkeypatch):
     """
-    The one that matters. Her emergency clip is about strained breathing and
-    calling 999 for shortness of breath. Played to a patient who has just
-    disclosed suicidal thoughts it answers a question they did not ask and
-    ignores the one they did, while the banner beside it offers Samaritans.
+
     """
     from auracare import paths
 
@@ -1251,9 +1163,6 @@ def test_the_crisis_clip_plays_once_it_is_recorded(tmp_path, monkeypatch):
 )
 def test_any_of_her_likely_filenames_is_accepted(tmp_path, monkeypatch, which):
     """
-    Her naming has surprised us before: the good-news clip is
-    `Phq-8_compete_good.mp4`. Guessing one spelling and waiting for it is how
-    a supplied clip sits in the folder doing nothing.
     """
     from auracare import paths
 
@@ -1318,11 +1227,6 @@ def _closing_warnings(at):
 
 def test_the_ending_says_when_the_self_harm_check_did_not_run():
     """
-    The crisis pathway reads the Task 4 transcript and nothing else. With no
-    transcript the check does not run, and on 18 Nov that produced a
-    "check-in complete, have a good day" ending with nothing to say a safety
-    check had been skipped. The disk was too full for the recogniser to load,
-    which is a thing that happens on a laptop and on a free cloud tier.
     """
     at = closing(
         results=healthy_results(),
@@ -1403,10 +1307,7 @@ def test_the_generic_closing_clip_never_reaches_an_urgent_ending(
     tmp_path, monkeypatch
 ):
     """
-    `closing.mp4` from an older assets folder says the results are filed and
-    wishes the patient well. The comment said urgent endings got no clip, but
-    the generic fallback ran after the branch that set it to None and would
-    have played it over the banner.
+    
     """
     from auracare import paths
 
