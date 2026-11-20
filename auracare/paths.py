@@ -1,9 +1,7 @@
 """
 Locating the project's own files and the sibling Cognitive_AI_Triage checkout.
 
-The model artifacts and the sample recordings live in the client's existing
-repository, which may sit anywhere relative to this one. Rather than hardcode a
-path - the current `streamlit_inference.py` hardcodes `/tmp`, which cannot work
+Rather than hardcode a path - the current `streamlit_inference.py` hardcodes `/tmp`, which cannot work
 on Windows - this searches a short list of plausible locations and lets an
 environment variable override everything.
 
@@ -23,9 +21,6 @@ CONFIG_DIR = PROJECT_ROOT / "config"
 
 SEVERITY_MODEL_FILENAMES = ("severity_model.pkl", "severity_model.pkl.2")
 
-# The MRI classifier. Ordered: the gzipped artifact is what her triage project
-# actually writes, the plain .pkl is what an older build left behind, and
-# ".pkl.2" is the name her GitHub release uses.
 IMAGE_MODEL_FILENAMES = (
     "alzheimer_classifier.pkl.gz",
     "alzheimer_classifier.pkl",
@@ -87,13 +82,7 @@ def find_image_model() -> Optional[Path]:
     """
     Path to the MRI classifier artifact, or None.
 
-    Searched in the same order as the severity model, which puts the copy
-    bundled under `models/` first. That ordering is the repair: the tab used
-    to find nothing and tell the clinician to set AURACARE_TRIAGE_REPO, which
-    is not a reasonable thing to ask of someone opening a prototype. A triage
-    checkout beside us still wins over nothing, so a freshly trained model is
-    picked up without moving files, and AURACARE_MODEL_DIR still overrides
-    everything.
+    .
     """
     for directory in _model_search_dirs():
         for name in IMAGE_MODEL_FILENAMES:
@@ -105,11 +94,6 @@ def find_image_model() -> Optional[Path]:
 
 def find_practice_files() -> Optional[Path]:
     """
-    The client's Practice_Files directory, or None.
-
-    Kept after the imaging work moved to Cognitive_AI_Triage because the
-    directory also holds the two sample .wav recordings the audio
-    verification scripts and the regression tests run against.
     """
     repo = find_triage_repo()
     if repo and (repo / "Practice_Files").is_dir():
@@ -152,12 +136,6 @@ STIMULUS_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
 
 def find_stimulus() -> Optional[Path]:
     """The Task 4 picture-description stimulus, whatever the client named it.
-
-    The clinician supplies this image, so its name and extension vary. A
-    `Stimulus_park.jpeg` dropped into assets/ beside the expected
-    `stimulus_park.png` previously left Task 4 with no picture and a "generate
-    it" warning, because the lookup was an exact filename match. Any image in
-    assets/ whose name begins with "stimulus" now counts, case ignored.
     """
     if not ASSETS_DIR.is_dir():
         return None
@@ -178,53 +156,24 @@ def find_stimulus() -> Optional[Path]:
 
 ANIMATIONS_DIR = ASSETS_DIR / "animations"
 INTRO_ANIMATION = "intro.mp4"
-# The two closing clips, supplied 17 Nov, filenames as she sent them. There
-# is one for the ending where nothing needs following up and one for the
-# ending where a clinician should look. Her "compete" spelling is hers.
-#
-# There is deliberately no clip for the crisis and emergency endings. The
-# clinician-review clip says "I would like a clinician to look at your
-# results", which in front of a patient who has just disclosed suicidal
-# thoughts understates it, and a calm 7-second video delays the number they
-# need. Those endings show the banner with no video until she records one.
+
 CLOSING_GOOD_ANIMATION = "Phq-8_compete_good.mp4"
 CLOSING_REVIEW_ANIMATION = "Phq-8_complete_bad.mp4"
-# Kept so an older assets folder still works. Deliberately not reached on the
-# crisis and emergency endings: see `find_closing_crisis`.
+
 CLOSING_ANIMATION = "closing.mp4"
 
-# "Urgent" is two different endings here, and one clip cannot serve both.
-#
-#   PATHWAY_EMERGENCY is respiratory: strained breathing, triage now, 999.
-#   PATHWAY_CRISIS    is a disclosure of self-harm: Samaritans, 116 123.
-#
-# She asked on 18 Nov whether a crisis and emergency clip was needed, said
-# she was sending two, and sent the emergency one the same afternoon. It
-# transcribes as "Because your breathing sounds a bit strained today, we are
-# routing your check-in to urgent triage right away... if you feel severely
-# short of breath, please call 999 immediately", which is `ui.EMERGENCY_PROMPT`
-# almost line for line and says nothing at all about self-harm. Playing it to
-# someone who has just disclosed suicidal thoughts would answer a question
-# they did not ask and ignore the one they did, so it is wired to the
-# respiratory ending alone.
-#
-# She sent it as a bare attachment number rather than a name, so it is named
-# here for what it is. Several spellings are accepted either way, as her own
-# naming has surprised us before: the good-news clip is `Phq-8_compete_good`.
 CLOSING_EMERGENCY_ANIMATIONS = (
     "Phq-8_complete_emergency.mp4",
     "Phq-8_compete_emergency.mp4",
     "closing_emergency.mp4",
 )
-# Still missing. The second of the two she said she was sending.
+
 CLOSING_CRISIS_ANIMATIONS = (
     "Phq-8_complete_crisis.mp4",
     "Phq-8_compete_crisis.mp4",
     "closing_crisis.mp4",
 )
-# The PHQ-8 introduction, supplied 16 Nov. Her filename is kept exactly as
-# sent, here and for the eight question clips, so a re-recorded file drops
-# straight in with no rename step and no code change.
+
 PHQ8_INTRO_ANIMATION = "Phq-8_Introduction.mp4"
 
 
@@ -257,46 +206,22 @@ def _first_animation_present(filenames) -> Optional[Path]:
 def find_closing_emergency() -> Optional[Path]:
     """Annie's closing clip for the respiratory emergency ending, or None.
 
-    Supplied 18 Nov and installed. See `CLOSING_EMERGENCY_ANIMATIONS` for why
-    it is not shared with the crisis ending.
     """
     return _first_animation_present(CLOSING_EMERGENCY_ANIMATIONS)
 
 
 def find_closing_crisis() -> Optional[Path]:
     """Annie's closing clip for the mental health crisis ending, or None.
-
-    None until she records it, and None is the right answer rather than a gap
-    to paper over. Every other clip in the folder is wrong for this ending:
-    the clinician-review one says "I would like a clinician to look at your
-    results", which understates a disclosure of self-harm; the emergency one
-    talks about breathing and shortness of breath; and the generic
-    `closing.mp4` from an older assets folder files the results and wishes
-    the patient well, which is worse than either. This ending shows the
-    banner and the Samaritans number with no video until the recording for it
-    exists.
     """
     return _first_animation_present(CLOSING_CRISIS_ANIMATIONS)
 
-
-# A clinician-supplied visual that stands in for a task's CSS pacing cue.
-# Video is accepted alongside the still formats because what she has
-# described for Task 2 is an animation.
 TASK_VISUAL_EXTENSIONS = (
     ".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm",
 )
 
 
 def find_task_visual(task_id: int) -> Optional[Path]:
-    """The clinician's own visual for one task, or None for the built-in cue.
-
-    Drop a file into assets/ named `task2_visual` with any ordinary image or
-    video extension and Task 2 shows it instead of the candle animation. The
-    stem is matched by prefix and the case is ignored, so the duplicate suffix
-    a browser adds (`task2_visual (1).mp4`) still counts: the same tolerance
-    `find_stimulus` has, and for the same reason. Task 4's picture keeps its
-    own `stimulus` lookup, which predates this and is what she has been told
-    to use.
+    """.
     """
     if not ASSETS_DIR.is_dir():
         return None
