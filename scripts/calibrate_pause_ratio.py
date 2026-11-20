@@ -6,16 +6,6 @@ The Auracare protocol escalates when the Task 4 speech pause ratio exceeds
 trusted, because if ordinary speakers sit near or above it the intercept fires
 on everyone and the alarm stops meaning anything.
 
-This slides a 30-second window (the protocol's Task 4 duration) across the
-client's sample recordings and reports the distribution, plus the fraction of
-windows that would trigger at a range of candidate thresholds.
-
-Caveat, stated in the output as well: these are DAIC-WOZ interview sessions
-containing both the interviewer and the participant, with conversational
-turn-taking gaps. A picture-description monologue should pause less. So this
-establishes an upper bound on the false-trigger rate rather than a drop-in
-replacement threshold - that needs the client's own Task 4 recordings.
-
 Usage
     python scripts/calibrate_pause_ratio.py [--window 30] [--hop 15]
 """
