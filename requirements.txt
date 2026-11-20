@@ -1,0 +1,43 @@
+# Auracare voice screening prototype - pinned dependencies
+#
+# Versions are pinned to what the build was tested against. scikit-learn in
+# particular must stay at 1.7.1: the severity artifact in the
+# Cognitive_AI_Triage repository was pickled with that version, and unpickling
+# an estimator under a different minor version produces
+# InconsistentVersionWarning and, in some cases, silently wrong behaviour.
+#
+# OpenCV was removed with the MRI classifier, which now lives in the
+# Cognitive_AI_Triage project.
+
+# -- core ---------------------------------------------------------------------
+streamlit==1.47.1
+numpy==2.2.6
+scipy==1.16.1
+pandas==2.3.1
+
+# -- audio --------------------------------------------------------------------
+soundfile==0.13.1          # decoding; libsndfile handles WAV/FLAC/OGG
+praat-parselmouth==0.4.6   # jitter, shimmer, HNR, pitch
+
+# -- models (for the optional severity model) ---------------------------------
+# scikit-learn is never imported directly. It is required because the severity
+# artifact is a pickle containing sklearn estimators, which cannot be
+# unpickled without it.
+scikit-learn==1.7.1
+joblib==1.5.1
+pillow==11.3.0
+
+# -- plotting, and the patient's takeaway PDF ---------------------------------
+# matplotlib also draws `auracare/pdf_export.py`. It was already pinned here,
+# so the takeaway added no dependency: reportlab would have been another
+# wheel, and a browser-side generator would have needed a CDN at runtime.
+matplotlib==3.10.5
+
+# -- tests --------------------------------------------------------------------
+pytest==8.4.1
+
+# -- optional: speech-to-text -------------------------------------------------
+# Needed only for the Task 4 transcript, negative-language flagging and
+# word-rate measures. Everything else works without it. Downloads a model on
+# first use (tiny.en ~75 MB, base.en ~145 MB) and caches it.
+faster-whisper==1.1.1
