@@ -51,7 +51,6 @@ RECALL_STEM_SINGLE = (
     "the following problem?"
 )
 
-# The clinician's own introduction to this section, 16 Nov.
 INTRO_HEADING = "A gentle check-in"
 # Transcribed from `Phq-8_Introduction.mp4` so the written version matches
 # what Annie says, rather than the draft the clip was recorded from.
@@ -90,8 +89,7 @@ PHQ8_ITEMS: List[Phq8Item] = [
         key="PHQ8_Depressed",
         short="Feeling down or hopeless",
         text="Feeling down, depressed, or hopeless",
-        # Her recording says "felt", not "been feeling". The published item
-        # text above is unchanged; only the spoken line follows the clip.
+     
         spoken_prompt=(
             "And how often have you felt down, depressed, or hopeless?"
         ),
