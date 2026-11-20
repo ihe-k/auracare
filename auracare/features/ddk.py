@@ -31,15 +31,7 @@ from ..vad import frame_energy_db
 # syllables in a fast DDK task are only ~150 ms apart.
 _ENVELOPE_HOP_MS = 5.0
 _ENVELOPE_FRAME_MS = 20.0
-# Backstop only. Peak acceptance is governed by voice activity and local
-# prominence; this just discards anything in the deep noise floor.
-#
-# An earlier version used `max(envelope) - 25 dB` as the acceptance floor and
-# it failed badly on a real recording: 385_AUDIO.wav is quiet (median frame
-# level -68 dB) with a few loud transients peaking at -32 dB, so the floor
-# landed at -57 dB and excluded 90 % of the actual speech. It found 26
-# syllables where the transcript had 52 words. Anchoring acceptance to a global
-# maximum is not robust to transients; anchoring it to voice activity is.
+
 _PEAK_FLOOR_DB = 45.0
 
 
