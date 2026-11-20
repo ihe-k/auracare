@@ -87,7 +87,6 @@ PROVISIONAL_DEFAULTS: Dict[str, Dict[str, float]] = {
     # scripts/calibrate_pause_ratio.py. The breach routes to clinical review,
     # not to the respiratory emergency pathway - see risk.py.
     "task4": {
-        # Recalibrated by the clinician on 10 Nov, on the evidence above:
         # green below 0.55, amber 0.55-0.68, red above 0.68. Against the same
         # 76 windows this takes the red rate from 57 % to roughly 3 %.
         # A breach of the ratio alone no longer escalates on its own - see
