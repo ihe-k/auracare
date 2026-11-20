@@ -1,20 +1,5 @@
 """
 Speech-to-text and negative-language flagging for Task 4.
-
-Transcription is pluggable and entirely optional. If no backend is installed
-the rest of the pipeline still runs - the acoustic measures do not depend on
-the transcript - and the UI says so instead of silently reporting zero
-negative-language hits, which would read as a reassuring result.
-
-The lexicon below is a transparent, auditable word list, not a model. That is a
-deliberate trade-off: it will miss paraphrase and it will over-trigger on
-quoted or hypothetical speech, but a clinician can read exactly why a phrase
-was flagged, which is not true of a sentiment classifier. Every flag is
-surfaced with the matched text so it can be checked against the transcript.
-
-The `risk` category is handled differently from the rest: it is not a severity
-input, it is a safety trigger. Any match routes to the crisis pathway
-regardless of PHQ-8 score or acoustic measures.
 """
 
 from __future__ import annotations
