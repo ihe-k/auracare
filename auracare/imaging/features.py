@@ -1,36 +1,9 @@
 # ---------------------------------------------------------------------------
 # Feature extraction for the MRI classifier.
 #
-# This is `image_features.py` from the Cognitive_AI_Triage project, copied in
-# verbatim rather than imported. Auracare has to run from its own folder on a
-# machine that may not have the triage checkout beside it, and that module's
-# neighbours pull in shap, lime, seaborn and librosa, none of which this
-# needs: the extraction itself is numpy and Pillow only.
-#
-# Everything below this banner is the triage file byte for byte, so the two
-# cannot drift apart unnoticed. `tests/test_image_pipeline.py` compares them
-# whenever that checkout is present and fails if they differ. Change the
-# triage copy, then re-copy; do not edit this one.
 # ---------------------------------------------------------------------------
 """
 MRI feature extraction for the Alzheimer stage classifier.
-
-This module exists because the feature vector the app was building did not
-resemble the one the model was trained on. `train_model.py` builds 50,436
-features per image: the 224x224 image flattened, then four summary statistics,
-then a 256-bin intensity histogram. The app was building 44 numbers and tiling
-them 1,147 times to reach the same length. Same shape, unrelated contents.
-
-The consequence was not merely reduced accuracy. Standardised by the model's
-own scaler, the tiled vector sat up to 86,000 standard deviations outside the
-training distribution, and the forest degenerated into a constant classifier:
-every image, whatever it showed, came back "Very mild Dementia". Rebuilding the
-vector the way training builds it brings the worst feature back to about 6
-standard deviations and the predictions back to the labels.
-
-    from image_features import features_for_image
-    features = features_for_image(uploaded_file)
-    probabilities = classifier.predict_proba(scaler.transform(features.reshape(1, -1)))
 
 Dependencies are numpy and Pillow only. `train_model.py` used OpenCV, but
 OpenCV is not in requirements.txt and is not installed on the deployed app,
@@ -282,13 +255,7 @@ def features_for_image(source: Any) -> np.ndarray:
 # Diagnostics
 # ---------------------------------------------------------------------------
 def standardisation_report(features: np.ndarray, scaler: Any) -> dict:
-    """
-    How far outside the training distribution a feature vector sits.
-
-    This is the measurement that identified the original fault and the one
-    that shows it is gone, so it is worth being able to print on demand. A
-    healthy vector has a median around 0.5 and a maximum in the single digits.
-    The tiled vector reached 86,000.
+    """p
     """
     mean = np.asarray(scaler.mean_, dtype=np.float64)
     scale = np.asarray(scaler.scale_, dtype=np.float64)
