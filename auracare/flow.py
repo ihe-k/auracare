@@ -46,13 +46,12 @@ class TaskMedia:
     clarify: Optional[str] = None
 
 
-# The clinician supplied and confirmed the affirmation order on 16 Nov:
 #   1 "That's perfect, thank you."
 #   2 "Well done, take a quick moment to catch your breath."
 #   3 "Wonderful, you're doing great."
 #   4 "I really appreciate you walking me through that. Your check-in is
 #      complete!"
-# Clarification clips, supplied 17 Nov for all four tasks and transcribed
+
 # before being wired, as with every clip here. Three matched their task and
 # are installed:
 #
@@ -88,7 +87,7 @@ TASK_MEDIA: Dict[int, TaskMedia] = {
     4: TaskMedia(affirm="task4_affirm.mp4", clarify="task4_clarify.mp3"),
 }
 
-# What each affirmation clip says. Supplied by the clinician on 16 Nov, held
+# What each affirmation clip says. Held
 # here for two reasons: it is the written fallback shown if a clip will not
 # play, and it is the record of which line belongs to which task, which the
 # filenames alone do not establish.
@@ -290,17 +289,7 @@ def looks_like_a_plea_for_help(text: Optional[str]) -> bool:
 
 # ---------------------------------------------------------------------------
 # How long to wait before asking again
-# ---------------------------------------------------------------------------
-# Measured from the supplied clips with PyAV. Annie is still speaking while
-# her prompt clip plays, so a timer started when the screen renders fires
-# mid-sentence: on Task 2 the clinician's seven-second window would have
-# interrupted her eleven seconds before she finished the instruction. The wait
-# is the clip plus the grace period.
-#
-# `tests/test_animations.py` pins each clip by content hash, so a re-export
-# that changed a duration cannot pass unnoticed, and the durations themselves
-# are checked against the files wherever a decoder is installed.
-PROMPT_CLIP_SECONDS: Dict[int, float] = {
+# ---------------------------------------------------------------------------PROMPT_CLIP_SECONDS: Dict[int, float] = {
     1: 9.98,
     2: 18.30,
     3: 9.98,
