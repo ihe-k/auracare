@@ -1,13 +1,5 @@
 """
 Conversation phases, response-clip routing and the two input judgements.
-
-Split out of `app.py` so the three decisions that make the check-in feel
-conversational can be tested without a Streamlit runtime: which phase a task
-is in, which clip plays in that phase, and whether what arrived was silence or
-a request for help rather than an attempt at the task.
-
-The clinician sketched this as a `phase` string plus an `AUDIO_FLOW` table.
-Both are here, rebuilt against what the app actually holds.
 """
 
 from __future__ import annotations
@@ -54,15 +46,13 @@ class TaskMedia:
     clarify: Optional[str] = None
 
 
-# The clinician supplied and confirmed the affirmation order on 16 Nov:
+# affirmation order:
 #   1 "That's perfect, thank you."
 #   2 "Well done, take a quick moment to catch your breath."
 #   3 "Wonderful, you're doing great."
 #   4 "I really appreciate you walking me through that. Your check-in is
 #      complete!"
-# Clarification clips, supplied 17 Nov for all four tasks and transcribed
-# before being wired, as with every clip here. Three matched their task and
-# are installed:
+# Clarification:
 #
 #   1 "Take a deep breath and say ahh for as long as you comfortably can."
 #   2 "Blow out as hard and fast as you can into the microphone, like blowing
@@ -70,40 +60,17 @@ class TaskMedia:
 #   4 "Look at the picture on your screen and describe what you see happening
 #      in your own words."
 #
-# Task 4's was byte-identical to the copy already installed on 16 Nov, which
-# confirms that mapping a second time.
-#
-# Task 3's is deliberately NOT wired. It says "Follow the circle on your
-# screen as it expands and shrinks in rhythm", which is a breathing and pacing
-# instruction. Task 3 in this build is still pa-ta-ka, and the screen beside
-# it reads "Match the rhythm: pa - ta - ka". Wiring it would have Annie give
-# breathing instructions over a diadochokinetic task, which is the same class
-# of fault as a mislabelled clip: the patient hears the wrong words and
-# nothing looks broken.
-#
-# The clip is consistent with the Task 3 rework she has described (TASKS.md
-# G2, pa-ta-ka removed in favour of a rest step), so it is most likely correct
-# for where Task 3 is going and wrong for where it is now. It is held in the
-# `today/` folder until she confirms. One line here wires it.
-#
-# Where a clarification clip is missing the CLARIFY phase falls back to
-# re-playing the prompt clip and showing the written instruction, which is a
-# weaker version of the same thing rather than a dead end.
-TASK_MEDIA: Dict[int, TaskMedia] = {
+  TASK_MEDIA: Dict[int, TaskMedia] = {
     1: TaskMedia(affirm="task1_affirm.mp4", clarify="task1_clarify.mp3"),
     2: TaskMedia(affirm="task2_affirm.mp4", clarify="task2_clarify.mp3"),
     3: TaskMedia(affirm="task3_affirm.mp4"),
     4: TaskMedia(affirm="task4_affirm.mp4", clarify="task4_clarify.mp3"),
 }
 
-# What each affirmation clip says. Supplied by the clinician on 16 Nov, held
-# here for two reasons: it is the written fallback shown if a clip will not
+# What each affirmation clip says: it is the written fallback shown if a clip will not
 # play, and it is the record of which line belongs to which task, which the
 # filenames alone do not establish.
-#
-# Task 4's line says the check-in is complete, but the PHQ-8 questions still
-# follow it. That is her wording and it is left alone; it is raised with her
-# rather than changed here.
+
 AFFIRMATION_TEXT: Dict[int, str] = {
     1: "That's perfect, thank you.",
     2: "Well done, take a quick moment to catch your breath.",
@@ -245,7 +212,7 @@ HELP_WORDS: Tuple[str, ...] = (
 
 # A plea is short. "Sorry, what do I do?" is six words; a thirty-second
 # account of a park scene is sixty or more. The length test is what stops a
-# normal Task 4 answer being thrown away, and the clinician's keyword list as
+# normal Task 4 answer being thrown away, and the keyword list as
 # written would have discarded most of them.
 MAX_PLEA_WORDS = 6
 
@@ -274,13 +241,6 @@ def looks_like_a_plea_for_help(text: Optional[str]) -> bool:
 
     Two tests, not one. An unambiguous phrase counts at any length; a single
     keyword counts only in a short utterance.
-
-    The clinician's version matched keywords as substrings against the whole
-    transcript, which fails twice over. "again" is inside "against", "how" is
-    inside "shower" and "show", so ordinary words trip it; and with "what" and
-    "how" on the list, a genuine thirty-second picture description would be
-    read as confusion and discarded. Whole-word matching and the length test
-    fix both.
     """
     words = normalise_utterance(text)
     if not words:
@@ -299,15 +259,7 @@ def looks_like_a_plea_for_help(text: Optional[str]) -> bool:
 # ---------------------------------------------------------------------------
 # How long to wait before asking again
 # ---------------------------------------------------------------------------
-# Measured from the supplied clips with PyAV. Annie is still speaking while
-# her prompt clip plays, so a timer started when the screen renders fires
-# mid-sentence: on Task 2 the clinician's seven-second window would have
-# interrupted her eleven seconds before she finished the instruction. The wait
-# is the clip plus the grace period.
-#
-# `tests/test_animations.py` pins each clip by content hash, so a re-export
-# that changed a duration cannot pass unnoticed, and the durations themselves
-# are checked against the files wherever a decoder is installed.
+
 PROMPT_CLIP_SECONDS: Dict[int, float] = {
     1: 9.98,
     2: 18.30,
