@@ -26,11 +26,6 @@ def test_every_task_has_its_own_animation():
 
 def test_no_two_tasks_share_a_clip():
     """
-    Task 2 was first supplied as a byte-identical copy of the pa-ta-ka clip
-    already in use for task 3, which would have told patients to repeat
-    syllables during the forced-exhalation manoeuvre. The measurement would
-    have been invalid with nothing visibly broken, so the distinctness of the
-    files is pinned here, by content and not by name.
     """
     import hashlib
 
@@ -100,10 +95,7 @@ def test_the_quiet_retry_clip_exists():
 
 def test_no_clip_is_used_for_two_different_things():
     """
-    Extends the duplicate check to every clip the app can play. Task 2's
-    prompt was first supplied as a byte-identical copy of task 3's, and an
-    affirmation clip that is secretly a prompt clip would be the same class of
-    fault: the patient hears the wrong words with nothing visibly broken.
+    
     """
     import hashlib
 
@@ -155,10 +147,6 @@ def test_annie_reads_every_phq8_question():
 
 def test_the_question_clips_line_up_with_the_instrument():
     """
-    Keyed by item key, not by position, so the two cannot drift apart. The
-    mapping was established by transcribing all eight files; the filenames
-    were not trusted, because an earlier supplied clip turned out to be a
-    byte-identical copy of a different task's.
     """
     from auracare import flow
     from auracare.phq8 import PHQ8_ITEMS
@@ -177,14 +165,7 @@ def test_the_phq8_introduction_clip_is_present():
 
 def test_every_clarification_clip_matches_its_own_task():
     """
-    The mapping came from transcribing all four clips she sent on 17 Nov, not
-    from their filenames.
-
-    Task 3's is held out on purpose. It says "Follow the circle on your screen
-    as it expands and shrinks in rhythm", a breathing instruction, while Task
-    3 in this build is pa-ta-ka. See `flow.TASK_MEDIA` for the full reason.
-    This test is what stops it being wired by accident before she confirms the
-    Task 3 rework.
+    
     """
     from auracare import flow
 
