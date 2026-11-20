@@ -85,9 +85,6 @@ def diagnose(url: Optional[str]) -> MicContext:
     return MicContext(url=url, secure=True)
 
 
-# Everything else that stops a microphone working, in the order worth trying.
-# Shown in the app next to the recorder, because the first thing she did was
-# ask us, which means the app did not tell her.
 TROUBLESHOOTING = [
     (
         "Open the app at localhost",
