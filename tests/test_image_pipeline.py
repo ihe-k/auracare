@@ -60,14 +60,11 @@ def test_the_copied_feature_module_matches_the_triage_original():
 
 
 # ---------------------------------------------------------------------------
-# Finding the artifact - the part that failed for her
+# Finding the artifact
 # ---------------------------------------------------------------------------
 def test_the_artifact_ships_with_the_project():
     """
-    The tab used to say "No classifier artifact found. Set
-    AURACARE_TRIAGE_REPO to your Cognitive_AI_Triage checkout", which is the
-    screenshot she sent back. A prototype should not need an environment
-    variable set before it will run.
+    
     """
     bundled = paths.PROJECT_ROOT / "models" / "alzheimer_classifier.pkl.gz"
     assert bundled.is_file(), "the classifier is not bundled under models/"
@@ -81,8 +78,6 @@ def test_the_bundled_artifact_is_what_is_found():
 
 def test_a_gzipped_artifact_is_recognised_by_content_not_by_name(tmp_path):
     """
-    Her artifact is gzipped and named .pkl.gz, but her GitHub release calls
-    the same thing .pkl.2. Sniffing the magic bytes means either name works.
     """
     import gzip
     import pickle
@@ -121,10 +116,6 @@ def test_class_names_come_from_the_artifact(model):
 
 def test_a_model_with_no_class_names_is_reported_not_guessed():
     """
-    An earlier version hard-coded a list that named "Severe Dementia", which
-    this model cannot predict, and left out "PET", which it can. Wrong names
-    against the right index mislabels every prediction while the screen looks
-    perfectly healthy.
     """
     result = alzheimer.classify(MRI_DIR / "Non-demented.jpg", {"classifier": 1, "scaler": 1})
     assert not result.ok
@@ -132,7 +123,7 @@ def test_a_model_with_no_class_names_is_reported_not_guessed():
 
 
 # ---------------------------------------------------------------------------
-# Classifying her four labelled images
+# Classification
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize("filename", sorted(LABELLED))
 def test_every_supplied_image_classifies_without_error(filename, model):
@@ -146,15 +137,7 @@ def test_every_supplied_image_classifies_without_error(filename, model):
 
 def test_three_of_the_four_labelled_images_are_classified_correctly(model):
     """
-    Pinned deliberately at three, not four.
-
-    `Moderate_dementia.jpg` comes back Non Demented at 51.5%, with the right
-    answer second at 27%. That is the model, not this code: the artifact's own
-    confusion matrix has 98 Moderate Dementia cases against 13,445 Non
-    Demented, and the errors it does make on that class all fall the same way.
-
-    If this ever passes for all four, the model has been retrained and this
-    test should be tightened. If it drops below three, something here broke.
+    .
     """
     hits = {
         name: alzheimer.classify(MRI_DIR / name, model).label == want
@@ -173,9 +156,6 @@ def test_the_known_miss_keeps_the_right_answer_in_second_place(model):
 
 def test_the_four_images_do_not_all_get_the_same_answer(model):
     """
-    The bug this guards is the one from the original image fix: a feature
-    vector built the same way whatever the input, so the forest returned one
-    answer for everything while looking like it was working.
     """
     labels = {
         alzheimer.classify(MRI_DIR / name, model).label for name in LABELLED
