@@ -598,12 +598,7 @@ def assess_task4(
     out.level = worst(i.level for i in out.indicators)
 
     # -- escalation ---------------------------------------------------------
-    # Pause ratio no longer escalates on its own. A healthy speaker pausing to
-    # think produces a high ratio with an otherwise normal profile, and on the
-    # client's own recordings the old single-threshold rule fired on 57 % of
-    # windows. Red now needs either one unbroken silence long enough to stand
-    # alone, or a high ratio that something else corroborates.
-    critical_ratio = t.get("task4", "pause_ratio_critical")
+        critical_ratio = t.get("task4", "pause_ratio_critical")
     long_silence_s = t.get("task4", "unfilled_pause_critical_s")
 
     longest_unfilled = (
@@ -641,12 +636,7 @@ def assess_task4(
                 f"(>= {unfilled_high} s)"
             )
 
-        # Speech rate is deliberately NOT a corroborator. It is syllables over
-        # total time, so it falls as the silent fraction rises - it is partly
-        # the same measurement as the pause ratio, and letting it corroborate
-        # would let a high ratio vouch for itself. The clinician named word
-        # retrieval latency and unfilled pause duration precisely because they
-        # are independent of how much silence there is.
+        
 
         if corroboration:
             out.intercept_triggered = True
