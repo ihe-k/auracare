@@ -1,12 +1,5 @@
 """
 Task 2's candle cue, and the drop-in slot for the clinician's own artwork.
-
-She asked on 16 Nov for Task 2's pacing cue to be the birthday candles her
-own instruction describes ("just like you're blowing out a big birthday
-candle") rather than a plain circle, and chased the artwork again on 18 Nov.
-The file that arrived both times is a single still frame, so the cue here is
-built from the behaviour she described. `find_task_visual` is the seam that
-lets her artwork replace it with a file copy and no code change.
 """
 from __future__ import annotations
 
@@ -69,9 +62,6 @@ def test_the_flames_go_out_and_come_back():
 
 def test_the_flames_go_out_in_sequence():
     """
-    Five flames switching off together reads as a light being turned off.
-    Staggering them reads as a breath crossing the cake, which is the
-    manoeuvre being asked for.
     """
     delays = [
         float(v)
@@ -126,7 +116,7 @@ def test_task_four_still_has_no_cue_because_it_has_a_picture():
 
 
 # ---------------------------------------------------------------------------
-# The drop-in slot for her own artwork
+# 
 # ---------------------------------------------------------------------------
 @pytest.fixture
 def assets(tmp_path, monkeypatch):
@@ -145,8 +135,6 @@ def test_no_file_means_the_built_in_cue(assets):
 )
 def test_any_ordinary_image_or_video_counts(assets, name):
     """
-    She sends whatever her tool exports. The extension is the thing that
-    varies, so it is the thing the lookup tolerates.
     """
     (assets / name).write_bytes(b"x")
     found = paths.find_task_visual(2)
@@ -192,8 +180,6 @@ def test_a_missing_assets_folder_is_not_an_error(tmp_path, monkeypatch):
 
 def test_the_app_prefers_her_file_to_the_built_in_cue():
     """
-    The cue is a stand-in for her artwork. The ordering in `app.py` is what
-    makes the stand-in step aside when the artwork arrives.
     """
     source = Path(__file__).resolve().parents[1].joinpath("app.py").read_text(
         encoding="utf-8"
@@ -219,9 +205,6 @@ def test_a_supplied_video_is_muted_and_looping():
 
 def test_her_cake_animation_is_the_shipped_task_two_visual():
     """
-    Pins the live state. Her cake arrived on 19 Nov as a GIF and went into
-    the slot with no code change, which is what the slot was for. The candles
-    stay in the stylesheet as the fallback for an assets folder without it.
     """
     found = paths.find_task_visual(2)
     assert found is not None, "her cake animation is missing from assets/"
@@ -230,9 +213,6 @@ def test_her_cake_animation_is_the_shipped_task_two_visual():
 
 def test_the_shipped_cake_really_is_an_animation():
     """
-    The three files she sent before this one were single still frames of a
-    loading spinner, each sent believing it was the animation. Counting the
-    frames is what told them apart, so it is worth counting them here too.
     """
     from PIL import Image, ImageSequence
 
@@ -245,7 +225,7 @@ def test_the_shipped_cake_really_is_an_animation():
 
 
 # ---------------------------------------------------------------------------
-# A supplied cue must not be mistaken for Annie
+#
 # ---------------------------------------------------------------------------
 def test_the_cue_container_is_keyed_so_the_scripts_can_see_it():
     """
@@ -261,10 +241,6 @@ def test_the_cue_container_is_keyed_so_the_scripts_can_see_it():
 
 def test_waiting_for_annie_ignores_a_supplied_cue():
     """
-    Both scripts watch `video[autoplay]`, and a supplied cue is one. Verified
-    in a browser on 18 Nov: with this line taken out, a two-second cue looped,
-    its first `ended` counted as Annie finishing and the recorder appeared
-    while she was eighteen seconds into speaking.
     """
     script = ui.advance_when_clip_ends("task1.mp4#0", "I am ready")
     assert f'.closest(".{ui.CUE_CONTAINER_CLASS}")' in script
@@ -272,9 +248,6 @@ def test_waiting_for_annie_ignores_a_supplied_cue():
 
 def test_the_autoplay_nudge_ignores_a_supplied_cue():
     """
-    Rendered from Annie's clip, the nudge rewinds every autoplay video whose
-    nonce is not hers, which would restart a looping cue; rendered from the
-    cue, it would rewind Annie mid-sentence. It is given neither job.
     """
     script = ui.autoplay_nudge("task1.mp4#0")
     assert f'.closest(".{ui.CUE_CONTAINER_CLASS}")' in script
@@ -359,9 +332,6 @@ def test_the_nudge_finds_a_voice_clip_by_its_container_too():
 
 def test_a_refused_voice_clip_arms_the_next_touch():
     """
-    Safari refuses audio on render even after a click elsewhere, which is
-    what her 19 Nov screenshot shows. It does allow play() from inside a
-    gesture handler, so the next touch anywhere has to retry.
     """
     script = ui.autoplay_nudge("quiet_retry.mp3#1")
     assert 'addEventListener("pointerdown"' in script
@@ -372,8 +342,6 @@ def test_a_refused_voice_clip_arms_the_next_touch():
 
 def test_the_quiet_prompt_and_the_clarification_are_the_discreet_ones():
     """
-    Her words: hide the playbacks for silence, retries and clarification.
-    Not the prompt or the affirmation, where Annie is on screen.
     """
     source = Path(__file__).resolve().parents[1].joinpath("app.py").read_text(
         encoding="utf-8"
@@ -403,9 +371,6 @@ def test_a_discreet_clip_still_gets_its_nudge():
 
 def test_the_returned_control_has_a_width():
     """
-    An <audio> element is inline by default, so `width: auto` leaves it zero
-    pixels wide: a control that is technically back and practically still
-    missing. Measured at zero in Chromium on 19 Nov before this was pinned.
     """
     rule = re.search(
         r"\.st-key-annie-voice\.auracare-needs-tap "
@@ -428,16 +393,8 @@ def test_the_returned_control_has_a_width():
 
 
 def test_the_quiet_prompts_player_is_never_handed_back():
-    """
-    Hidden, and kept hidden even when the browser refuses to start it.
-    Everything the clip says is already written beside it - "It is quiet on
-    my end. Take a breath whenever you are ready, then record it again." - so
-    the player bar is a control with nothing to offer, and the clinician has
-    asked twice to stop seeing it (18 and 19 Nov).
 
-    The clarification clips keep the escape hatch, because what they say is
-    not written anywhere else and silence there loses the instruction.
-    """
+    
     import re
 
     rule = re.search(
