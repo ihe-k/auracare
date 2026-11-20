@@ -41,10 +41,7 @@ class TaskScript:
     cue_hint: str
     colour: str
     safety_check: str
-    # Filename of the clinician's Annie animation for this task, inside
-    # assets/animations/. None means no clip exists for the task, which
-    # degrades to the written prompt rather than borrowing another task's
-    # clip; all four tasks now have their own.
+    
     animation: Optional[str] = None
 
 
@@ -54,20 +51,14 @@ TASK_SCRIPTS: List[TaskScript] = [
         domain="Respiratory & laryngeal health",
         window="0:00 - 0:25",
         record_seconds=10,
-        # Clinician's wording, and the text her recorded Annie audio speaks.
-        # The welcome line she wrote sits on the check-in screen separately;
-        # this is her task 1 script.
+        
         prompt=(
             "For our first task, take a deep, comfortable breath. When the "
             "timer starts, say the 'ah' sound and hold it steadily for as "
             "long as you comfortably can until the bar fills up."
         ),
         instruction="Inhale as the circle grows, then hold **\u201cAhhh\u201d**.",
-        # The title read "Sustained phonation /a:/". That is the IPA for
-        # the vowel: correct notation for a phonetician, meaningless to a
-        # patient, so it came off the patient-facing title at the
-        # clinician's request. The domain name on the clinical side still
-        # says what is being measured.
+        .
         cue_class="circle-phonation",
         cue_label="Task 1 \u00b7 Sustained phonation",
         cue_hint="Hold the note steadily until you run out of breath.",
@@ -83,9 +74,7 @@ TASK_SCRIPTS: List[TaskScript] = [
         domain="Expiratory airway dynamics",
         window="0:25 - 0:45",
         record_seconds=10,
-        # Wording supplied by the clinician, 10 Nov. Kept close to her text:
-        # the instruction is what shapes the manoeuvre, and a cleaner, more
-        # consistent manoeuvre is the one real lever on Task 2 accuracy.
+      
         prompt=(
             "Next up is Task 2. For this task, we're going to evaluate your "
             "exhalation dynamics using your microphone. Please take a deep "
@@ -152,10 +141,6 @@ TASK_SCRIPTS: List[TaskScript] = [
 
 WELCOME_HEADING = "Welcome to your check-in"
 
-# Transcribed from `intro.mp4` so the written version is what Annie actually
-# says. It is on a screen of its own, which is why it can state how long the
-# whole thing takes: on Task 1 that line arrived after the check-in had
-# already started.
 WELCOME_SCRIPT = (
     "Hi there, I'm Annie from Auracare. Let's take two quick minutes for your "
     "voice and respiratory check-in today. Find a comfortable spot and "
@@ -167,11 +152,6 @@ COMPLETION_PROMPT = (
     "Have a good day."
 )
 
-# The clinician's own opening line for the closing screen. It goes on the two
-# non-escalating pathways only. Spoken before an emergency message it would
-# have said "I'm so happy you completed this screening" immediately before
-# "your breathing sounds strained, we are routing your assessment to
-# emergency triage", which is the wrong tone at the worst possible moment.
 SCREENING_THANKS = "I'm so happy you completed this screening."
 
 CLINICIAN_REVIEW_PROMPT = (
@@ -447,28 +427,11 @@ def system_bubble(text: str) -> str:
     return f'<div class="aura-system">{html.escape(text)}</div>'
 
 
-# Most cues are one animated circle and need no markup of their own. Task 2's
-# cake needs its parts, so the body is held here rather than making every cue
-# carry a template it does not use.
-# Streamlit turns a container `key` into a CSS class on the wrapper, which is
-# the only dependable hook into its DOM. A clinician-supplied pacing visual
-# goes inside this one.
-#
-# Both scripts below watch `video[autoplay]` to decide when Annie has finished
-# speaking, and a supplied cue is an autoplaying video sitting on the same
-# screen. Without this marker the cue's own clip ending counted as Annie
-# finishing and revealed the recorder early, and the cue's nudge rewound her
-# instruction to the start mid-sentence. Neither shows up in a stylesheet or
-# in a test that reads one, which is why the rule lives next to the scripts.
-# Annie speaking with nothing to look at: the quiet prompt and the spoken
-# clarifications. She asked on 19 Nov for these to stop showing a player,
-# "as it's meant to feel like a conversation", with a screenshot of a bare
-# transport bar sitting at 00:00 under the task heading. A clip inside this
-# container is heard and not seen.
+
 VOICE_CONTAINER_KEY = "annie-voice"
 VOICE_CONTAINER_CLASS = "st-key-annie-voice"
-# Added to the container from the browser when the clip will not start, which
-# is the one case where the patient does need the control back.
+
+
 VOICE_NEEDS_TAP_CLASS = "auracare-needs-tap"
 
 CUE_CONTAINER_KEY = "task-cue"
