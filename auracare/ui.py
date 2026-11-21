@@ -1,9 +1,6 @@
 """
 Presentation helpers for the Streamlit app: CSS, animated task cues, spoken
 prompts and the protocol script.
-
-Kept out of `app.py` so the protocol copy - the words the agent actually says -
-sits in one reviewable place rather than scattered through UI code.
 """
 
 from __future__ import annotations
@@ -41,10 +38,6 @@ class TaskScript:
     cue_hint: str
     colour: str
     safety_check: str
-    # Filename of the clinician's Annie animation for this task, inside
-    # assets/animations/. None means no clip exists for the task, which
-    # degrades to the written prompt rather than borrowing another task's
-    # clip; all four tasks now have their own.
     animation: Optional[str] = None
 
 
@@ -54,20 +47,12 @@ TASK_SCRIPTS: List[TaskScript] = [
         domain="Respiratory & laryngeal health",
         window="0:00 - 0:25",
         record_seconds=10,
-        # Clinician's wording, and the text her recorded Annie audio speaks.
-        # The welcome line she wrote sits on the check-in screen separately;
-        # this is her task 1 script.
         prompt=(
             "For our first task, take a deep, comfortable breath. When the "
             "timer starts, say the 'ah' sound and hold it steadily for as "
             "long as you comfortably can until the bar fills up."
         ),
         instruction="Inhale as the circle grows, then hold **\u201cAhhh\u201d**.",
-        # The title read "Sustained phonation /a:/". That is the IPA for
-        # the vowel: correct notation for a phonetician, meaningless to a
-        # patient, so it came off the patient-facing title at the
-        # clinician's request. The domain name on the clinical side still
-        # says what is being measured.
         cue_class="circle-phonation",
         cue_label="Task 1 \u00b7 Sustained phonation",
         cue_hint="Hold the note steadily until you run out of breath.",
@@ -83,9 +68,6 @@ TASK_SCRIPTS: List[TaskScript] = [
         domain="Expiratory airway dynamics",
         window="0:25 - 0:45",
         record_seconds=10,
-        # Wording supplied by the clinician, 10 Nov. Kept close to her text:
-        # the instruction is what shapes the manoeuvre, and a cleaner, more
-        # consistent manoeuvre is the one real lever on Task 2 accuracy.
         prompt=(
             "Next up is Task 2. For this task, we're going to evaluate your "
             "exhalation dynamics using your microphone. Please take a deep "
@@ -152,10 +134,6 @@ TASK_SCRIPTS: List[TaskScript] = [
 
 WELCOME_HEADING = "Welcome to your check-in"
 
-# Transcribed from `intro.mp4` so the written version is what Annie actually
-# says. It is on a screen of its own, which is why it can state how long the
-# whole thing takes: on Task 1 that line arrived after the check-in had
-# already started.
 WELCOME_SCRIPT = (
     "Hi there, I'm Annie from Auracare. Let's take two quick minutes for your "
     "voice and respiratory check-in today. Find a comfortable spot and "
@@ -167,11 +145,6 @@ COMPLETION_PROMPT = (
     "Have a good day."
 )
 
-# The clinician's own opening line for the closing screen. It goes on the two
-# non-escalating pathways only. Spoken before an emergency message it would
-# have said "I'm so happy you completed this screening" immediately before
-# "your breathing sounds strained, we are routing your assessment to
-# emergency triage", which is the wrong tone at the worst possible moment.
 SCREENING_THANKS = "I'm so happy you completed this screening."
 
 CLINICIAN_REVIEW_PROMPT = (
@@ -226,7 +199,7 @@ CSS = """
   .cut-row {
       display: flex; justify-content: space-between; align-items: baseline;
       gap: 12px; padding: 3px 0; font-size: 0.88rem;
-      /* Inherited, not fixed. The slate greys used elsewhere in this sheet
+      /* The slate greys used elsewhere in this sheet
          are chosen against the dark panels they sit on; in the sidebar under
          a light theme they came out almost invisible, which `st.text` never
          did because it follows the theme. */
@@ -286,8 +259,7 @@ CSS = """
   /* The quiet prompt's own clip, which is never given back. Everything it
      says is already written on the screen beside it - "It is quiet on my
      end. Take a breath whenever you are ready, then record it again." - so a
-     player bar there adds a control the patient does not need and the
-     clinician has now asked twice to have hidden (18 and 19 Nov). The
+     player bar there adds a control the patient does not need. The
      clarification clips keep their escape hatch above, because what they say
      is not written anywhere else. */
   .st-key-annie-voice-quiet [data-testid="stAudio"] {
@@ -312,9 +284,7 @@ CSS = """
       overflow: hidden;
   }
 
-  /* A clinician-supplied visual stands in for the cue, so it takes the cue's
-     panel: same shape as the clip beside it, so the two halves of the screen
-     stay the same height. Black rather than the cue's navy because the
+  /* Black rather than the cue's navy because the
      artwork she supplies is drawn on black, and a navy border around a black
      picture reads as a mistake. */
   .st-key-task-cue {
@@ -346,8 +316,7 @@ CSS = """
          lot of empty navy once the panel grew to match the video. */
       width: 160px; height: 160px; border-radius: 50%;
       /* `transform: scale()` paints outside the element without reserving
-         any room for it, so the circle grew over the sentence beneath it -
-         what the clinician reported on 17 Nov. The widest animation is the
+         any room for it, so the circle grew over the sentence beneath it. The widest animation is the
          exhale burst at 1.3, which puts 24px past each edge
          ((160 x 1.3) - 160) / 2. Reserving exactly that much stops the
          overlap but still leaves the sentence only 10px clear of the circle
@@ -374,9 +343,7 @@ CSS = """
       100% { transform: scale(1.12); }
   }
 
-  /* Task 2. Her own wording for the manoeuvre is "just like you're blowing
-     out a big birthday candle", and she asked on 16 and 18 Nov for the cue
-     to be the candles rather than a circle. The flames go out left to right
+  /* Task 2. The flames go out left to right
      over about a second and a half, which is the shape of the breath being
      asked for: one sharp push, not a slow sigh. They relight so the cue can
      be watched twice before recording, as the other two cues loop. */
@@ -476,44 +443,18 @@ def system_bubble(text: str) -> str:
     return f'<div class="aura-system">{html.escape(text)}</div>'
 
 
-# Most cues are one animated circle and need no markup of their own. Task 2's
-# cake needs its parts, so the body is held here rather than making every cue
-# carry a template it does not use.
-# Streamlit turns a container `key` into a CSS class on the wrapper, which is
-# the only dependable hook into its DOM. A clinician-supplied pacing visual
-# goes inside this one.
-#
-# Both scripts below watch `video[autoplay]` to decide when Annie has finished
-# speaking, and a supplied cue is an autoplaying video sitting on the same
-# screen. Without this marker the cue's own clip ending counted as Annie
-# finishing and revealed the recorder early, and the cue's nudge rewound her
-# instruction to the start mid-sentence. Neither shows up in a stylesheet or
-# in a test that reads one, which is why the rule lives next to the scripts.
-# Annie speaking with nothing to look at: the quiet prompt and the spoken
-# clarifications. She asked on 19 Nov for these to stop showing a player,
-# "as it's meant to feel like a conversation", with a screenshot of a bare
-# transport bar sitting at 00:00 under the task heading. A clip inside this
-# container is heard and not seen.
 VOICE_CONTAINER_KEY = "annie-voice"
 VOICE_CONTAINER_CLASS = "st-key-annie-voice"
 
-# The same, for a clip whose words are already on the screen. It is hidden by
-# the same rule and, unlike the one above, is never handed back when the
-# browser refuses to start it. See the stylesheet for why.
 QUIET_CONTAINER_KEY = "annie-voice-quiet"
 QUIET_CONTAINER_CLASS = "st-key-annie-voice-quiet"
 
 # Holds the control that reports Annie's clip having actually started. See
-# `press_when_clip_plays`, and `app.annie_has_spoken` for why the quiet wait
-# needs to be told.
 SPOKE_CONTAINER_KEY = "annie-spoke"
 SPOKE_CONTAINER_CLASS = "st-key-annie-spoke"
-# The same idea for the quiet prompt's own clip. A separate container because
-# the two gates watch different clips and must not press each other's control.
 QUIET_SPOKE_CONTAINER_KEY = "quiet-spoke"
 QUIET_SPOKE_CONTAINER_CLASS = "st-key-quiet-spoke"
-# Added to the container from the browser when the clip will not start, which
-# is the one case where the patient does need the control back.
+
 VOICE_NEEDS_TAP_CLASS = "auracare-needs-tap"
 
 CUE_CONTAINER_KEY = "task-cue"
@@ -680,23 +621,6 @@ def press_when_clip_plays(nonce: str, container_class: str) -> str:
     """
     Press a hidden control once Annie's clip has actually started.
 
-    The quiet wait is meant to begin when the patient has been given the
-    instruction, and it used to begin when the recorder appeared instead. On
-    a browser that starts the clips those are the same moment. On one that
-    refuses them - the clinician's iPhone, reported 19 and 20 Nov - they are
-    not: the clip sits at 00:00 behind a play control, the clock runs anyway,
-    and "it is quiet on my end" arrives having said nothing to be quiet
-    after. Reproduced on 20 Nov by refusing `play()` the way Safari does.
-
-    So the server is told. The clip is matched by the mark `autoplay_nudge`
-    leaves on it, `data-auracare-nudged`, which carries this exact rendering:
-    a leftover from the previous phase has an older nonce and is ignored,
-    which is the same trap that made the nudge replay old clips.
-
-    `currentTime > 0.2` rather than the `play` event, because a clip that was
-    already playing when this script was inserted never fires `play` again,
-    and `ended` counts too: an instruction heard in full during the opening
-    has been given, whatever the element does afterwards.
     """
     return """
     <script>
@@ -740,28 +664,6 @@ def press_when_quiet_clip_plays(
     """
     Press a hidden control once the QUIET PROMPT's clip has started.
 
-    The sibling of `press_when_clip_plays`, and the mirror image of it: that
-    one deliberately ignores the quiet clip, because the instruction is what
-    it is waiting for. This one waits for precisely that clip, so the written
-    prompt can be held back until Annie is actually saying it. The clinician
-    asked for this on 21 Nov - the notice was arriving before her voice.
-
-    The reason it is a separate script and not a flag on the other: the two
-    gates can be on screen at the same moment, watching different clips, and
-    a shared script would let one press the other's control.
-
-    FALLBACK, and the whole reason this is safe. `press_when_clip_plays` may
-    give up without pressing: nothing is lost there, because the recorder and
-    the written instruction are still on the screen and only an unwanted
-    prompt is skipped. Here the held-back text IS the screen, so giving up
-    silently would leave the patient looking at nothing - a worse version of
-    the fault reported on 19 and 20 Nov. So the control is pressed anyway
-    after `fallback_ms`, whatever the clip did. On a browser that plays the
-    clip this never fires; on one that refuses, the prompt simply arrives a
-    moment late instead of never.
-
-    No JavaScript means no Streamlit either, so there is no case where this
-    script does not run but the page does.
     """
     return """
     <script>
@@ -807,38 +709,6 @@ def autoplay_nudge(nonce: str) -> str:
     """
     Ask Annie's freshly rendered clip to start playing.
 
-    Chrome, Edge and Safari all ignore the `autoplay` attribute on an element
-    that was inserted after the page loaded, which is every clip in this app:
-    Streamlit swaps the media in over its websocket on each rerun, long after
-    the document finished loading. The attribute is there, the element is
-    there, and the browser simply never starts it. Measured in Chromium with
-    `--autoplay-policy=user-gesture-required`, which is the real default: the
-    task prompt, the affirmation and the quiet-retry clip all sat at
-    `paused: true, currentTime: 0`.
-
-    Calling `play()` explicitly is permitted, and was verified to resolve
-    rather than reject once the patient has clicked anything at all - the
-    Begin button is enough. So the clips are nudged by hand instead.
-
-    One guard matters, and `nonce` is it. Each element records the nonce it
-    was last nudged for, so a rerun that renders the same nonce leaves a
-    playing clip alone, while a new nonce rewinds and restarts. The caller is
-    what decides which is which: `app.clip_nonce` combines the filename with
-    an epoch that moves on every phase change, so Annie repeats herself when
-    the conversation moves on and stays quiet when the page merely redraws.
-
-    `nonce` must identify the clip, for the same reason `speak_script` takes
-    one. This is rendered through `components.html`, which Streamlit serves as
-    an iframe carrying the markup in `srcdoc`. Identical markup at the same
-    position is reused on a rerun and the script inside it never runs a second
-    time, so a constant string nudged the task prompt and then sat inert while
-    the affirmation and the quiet-retry clip rendered. Putting the clip's name
-    in the markup changes the `srcdoc`, which forces a fresh iframe and a
-    fresh run.
-
-    Nothing here can make the very first clip play, because the welcome video
-    renders before the patient has clicked anything and the browser has no
-    gesture to work with. That one keeps its visible play control.
     """
     return """
     <script>
@@ -901,9 +771,7 @@ def autoplay_nudge(nonce: str) -> str:
                 const holder = m.closest(".st-key-annie-voice") || quiet;
                 if (!holder) return;
                 // Safari refuses audio on render even after a click
-                // elsewhere, which is what her 19 Nov screenshot shows: an
-                // AirPlay button, so an Apple browser, and the clip sitting
-                // at 00:00. It does allow play() from inside a real gesture
+                // elsewhere. It does allow play() from inside a real gesture
                 // handler, so the next touch anywhere starts her.
                 const retry = function () {
                   const again = m.play();
@@ -916,7 +784,7 @@ def autoplay_nudge(nonce: str) -> str:
                 doc.addEventListener("pointerdown", retry, {once: true});
                 doc.addEventListener("keydown", retry, {once: true});
                 // And if nothing is touched, hand the control back rather
-                // than leaving her silent with nothing to press.
+                // than leaving silent with nothing to press.
                 if (quiet) return;
                 window.setTimeout(function () {
                   if (m.paused && m.currentTime === 0) {
