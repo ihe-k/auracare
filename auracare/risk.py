@@ -641,13 +641,6 @@ def assess_task4(
                 f"(>= {unfilled_high} s)"
             )
 
-        # Speech rate is deliberately NOT a corroborator. It is syllables over
-        # total time, so it falls as the silent fraction rises - it is partly
-        # the same measurement as the pause ratio, and letting it corroborate
-        # would let a high ratio vouch for itself. The clinician named word
-        # retrieval latency and unfilled pause duration precisely because they
-        # are independent of how much silence there is.
-
         if corroboration:
             out.intercept_triggered = True
             out.intercept_reason = (
