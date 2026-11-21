@@ -124,11 +124,6 @@ def init_state() -> None:
         # Tasks whose instruction clip has actually been heard starting. The
         # quiet wait does not run before this: see `annie_has_spoken`.
         "annie_spoke": set(),
-        # Clip nonces of quiet prompts whose audio has been heard starting.
-        # The written notice is held back until then, so it lands with her
-        # voice rather than ahead of it: see `quiet_voice_started`. Keyed on
-        # the nonce and not the task, so that arriving at the quiet prompt a
-        # second time waits again rather than showing the text at once.
         "quiet_spoke": set(),
         # Tasks whose affirmation pop-up has been shown and dismissed. Without
         # it the dialog reopens on every rerun of the task behind it.
@@ -144,16 +139,12 @@ def init_state() -> None:
         # browser voice speaks again rather than deduplicating itself.
         "clarify_count": {},
         # -- PHQ-8 flow ---------------------------------------------------
-        # Her script creates these lazily on first use, which means "Start
-        # over" leaves the patient on question 6 of the previous run.
+        
         "phq_intro_done": False,
         "phq_index": 0,
         # Annie's greeting is a screen of its own, ahead of Task 1.
         "welcome_done": False,
-        # The patient's takeaway, built once when the check-in finishes. Held
-        # rather than rebuilt per tab: it is the result of the run that just
-        # ended, and re-deriving it on each rerun would let a later edit to
-        # the thresholds quietly rewrite a document already downloaded.
+        
         "diagnostic_summary": None,
         # The rendered bytes of the above, drawn once. See
         # `build_diagnostic_summary`.
@@ -277,11 +268,6 @@ def render_sidebar() -> Dict[str, object]:
             "These are the Kroenke 2009 cut-points. They are shown for "
             "transparency and are not intended to be tuned."
         )
-        # Laid out rather than padded. `st.text` renders in the app's
-        # proportional font, so the `:<24` padding that was here lined the
-        # numbers up in the source and left them ragged on screen, which is
-        # what the clinician photographed on 17 Nov. A flex row pins every
-        # number to the same right edge at any sidebar width.
         rows = "".join(
             '<div class="cut-row"><span>{}</span><span>{}</span></div>'.format(
                 html.escape(key.replace("_", " ")), html.escape(str(value))
@@ -340,10 +326,6 @@ def render_sidebar() -> Dict[str, object]:
 # ---------------------------------------------------------------------------
 # Analysis
 # ---------------------------------------------------------------------------
-# Distinguishes "no transcript was supplied, work it out" from "a transcript
-# was supplied and it is None". Task 4's help scan has to transcribe before
-# deciding whether to measure at all, and transcription is the slowest step in
-# the app; passing the result through avoids doing it twice.
 _UNSET = object()
 
 
@@ -409,9 +391,7 @@ def summarise_result(task_id: int, result) -> str:
             f" · {result.n_syllables} syllables"
             f" · rhythm CV {ui.fmt_value(result.rhythm_cv, '', 3)}"
         )
-    # The two hesitation measures are shown alongside the pause ratio because
-    # they are what decides whether a high ratio escalates. Showing the ratio
-    # on its own would leave the clinician unable to see why it did or did not.
+
     return (
         f"telemetry · pause ratio {ui.fmt_value(result.pause_ratio, '', 3)}"
         f" · speech rate {ui.fmt_value(result.speech_rate_sylls, 'syll/s')}"
@@ -440,18 +420,6 @@ def current_assessment():
 def build_diagnostic_summary() -> None:
     """
     Freeze the finished check-in into the patient's takeaway.
-
-    Built once, at the end, rather than on each render of a tab that offers
-    it. The sidebar thresholds are tunable while the app is open, so deriving
-    the document on every rerun would let a threshold nudged afterwards
-    rewrite a summary the patient has already downloaded, with the same
-    filename and a different result inside.
-
-    Task 1's three voice numbers are passed through as they are, including
-    `None` where parselmouth could not measure one. The clinician's draft
-    used `getattr(..., 0.8)` and friends, which puts a plausible invented
-    figure on a document a patient keeps; a blank says "not measured", which
-    is what happened.
     """
     voice = getattr(st.session_state.results.get(1), "voice", None)
     try:
@@ -465,10 +433,7 @@ def build_diagnostic_summary() -> None:
             patient_id=st.session_state.patient_id,
             assessment=current_assessment(),
         )
-        # Drawn here, once, rather than in each of the three places that
-        # offer it. Streamlit runs the body of every tab on every rerun, so
-        # rendering at the call site drew the same document three times a
-        # keystroke for as long as the finished screen stayed open.
+  
         st.session_state.diagnostic_summary = summary
         st.session_state.diagnostic_pdf = render_pdf(summary)
     except Exception as exc:  # noqa: BLE001
@@ -482,11 +447,6 @@ def offer_summary_download(heading: str, key: str) -> None:
     """
     The takeaway, as a native download button.
 
-    `st.download_button` rather than the `components.html` link her draft
-    used. The component is still exported and still works, but it renders
-    into a sandboxed iframe, and a sandbox without `allow-downloads` refuses
-    the anchor without saying so. This path has no iframe and no data URI,
-    and it looks like the rest of the app.
     """
     summary = st.session_state.get("diagnostic_summary")
     data = st.session_state.get("diagnostic_pdf")
@@ -512,18 +472,6 @@ def offer_summary_email(key: str) -> None:
     """
     The same summary as an email, opened in the patient's own mail client.
 
-    Asked for on 20 Nov, alongside the download. Deliberately a draft rather
-    than a send: the app says on every screen and on the PDF itself that
-    nothing is transmitted anywhere, and standing up an outbound mail path
-    would make that false - a prototype would start posting health data off
-    the machine with no consent step and nowhere audited to send it. Handing
-    the draft to the patient's own client keeps the sending with the person
-    whose results these are, and it works offline and inside a hospital
-    network, where an SMTP route out would not.
-
-    A `mailto:` cannot carry an attachment, which is said on screen rather
-    than left to be discovered: the headline result travels in the body and
-    the PDF is attached by hand from the button above.
     """
     summary = st.session_state.get("diagnostic_summary")
     if not summary:
@@ -552,11 +500,7 @@ def offer_summary_email(key: str) -> None:
 
 def check_intercept(task_id: int) -> Optional[str]:
     """
-    Did this task trip a safety intercept?
-
-    Only fires on a *measured* breach. A recording that could not be measured
-    yields None from the extractor and is never an intercept - the original
-    draft showed its emergency banner before any analysis had run at all.
+ 
     """
     assessment = current_assessment()
     task = assessment.task(task_id)
@@ -571,11 +515,6 @@ def check_intercept(task_id: int) -> Optional[str]:
 def current_phase(step: int) -> str:
     """
     The phase this task step is in, always a member of `flow.PHASES`.
-
-    Resets whenever the step changes, so a CLARIFY entered on Task 2 cannot
-    follow the patient into Task 3. A bare `phase` string with no record of
-    which task it belongs to, which is how the clinician's sketch holds it,
-    leaks across every advance.
     """
     if st.session_state.get("phase_step") != step:
         st.session_state.phase_step = step
@@ -629,35 +568,14 @@ def play_clip(
 ) -> bool:
     """
     Render one of Annie's clips, video or audio. False if it is not installed.
-
-    Returning a boolean rather than raising is what lets every phase degrade
-    to text: a task with no clarification clip repeats the instruction in
-    writing instead of reaching a dead end.
-
-    The nudge is keyed on the clip *and* the current epoch rather than on the
-    filename alone. Tasks without their own clarification clip answer "Say
-    that again" by replaying the prompt clip, which is the same file that has
-    just finished playing. Keyed on the filename, the nudge treated that as a
-    clip it had already started and left it silent - the screen changed and
-    Annie said nothing, which is what the clinician reported on 17 Nov. The
-    epoch moves on every phase change, so a deliberate repeat restarts and an
-    incidental rerun still does not.
     """
     clip = paths.find_animation(filename)
     if clip is None:
         return False
     if clip.suffix.lower() in AUDIO_SUFFIXES:
         fmt = "audio/mpeg" if clip.suffix.lower() == ".mp3" else "audio/wav"
-        # `discreet` is for Annie speaking mid-conversation with nothing to
-        # look at. `st.audio` has no way to drop the controls, so the element
-        # is rendered as usual and taken out of sight by the stylesheet; see
-        # `ui.VOICE_CONTAINER_KEY`. It is given back if it will not start.
         if discreet:
-            # `hand_back` decides which of the two hidden containers it goes
-            # in. Both hide the player; only the first gives it back when the
-            # browser refuses to start the clip. A clip whose words are
-            # already written on the screen does not need the control, and
-            # the clinician has asked twice to stop seeing it.
+
             key = (ui.VOICE_CONTAINER_KEY if hand_back
                    else ui.QUIET_CONTAINER_KEY)
             with st.container(key=key):
@@ -667,11 +585,7 @@ def play_clip(
         if autoplay:
             components.html(ui.autoplay_nudge(clip_nonce(clip)), height=0)
         return True
-    # The clip fills its column, so it matches the cue panel beside it. It
-    # used to be held inside a further st.columns([2, 3]) because the files
-    # are only 354x402 and upscale poorly, but shrinking one side to protect
-    # the resolution is what left the screen lopsided. The column is now half
-    # the content width rather than three fifths, so the upscale is modest.
+
     st.video(str(clip), autoplay=autoplay)
     if autoplay:
         components.html(ui.autoplay_nudge(clip_nonce(clip)), height=0)
@@ -685,25 +599,8 @@ def play_clip(
 def quiet_watchdog(step: int, deadline: float) -> None:
     """
     Hand over to the quiet prompt when nothing has been recorded in time.
-
-    A fragment, not the `streamlit_autorefresh` the clinician's sketch
-    imports, for two reasons. It is first-party, so there is nothing extra to
-    install. And it reruns only itself: a whole-script refresh every second
-    restarts Annie's prompt video on every tick, so she would never get to
-    the end of a sentence.
-
-    Renders nothing. A visible countdown on a clinical screen reads as a test
-    the patient is failing.
     """
-    # A fragment keeps its own timer in the browser, so one more tick can
-    # arrive after the screen it was started for has gone: the patient
-    # records, the check-in moves on, and this runs once more still carrying
-    # the finished task's step and its long-expired deadline. The recorder it
-    # looks at is no longer on the page by then, so Streamlit has dropped the
-    # value and the absence reads as silence - and the quiet prompt lands on
-    # top of the next task while Annie is still introducing it, which is what
-    # the clinician reported on 19 Nov. Every guard here is one question
-    # asked a different way: is this still the screen this timer belongs to?
+
     if int(st.session_state.get("step", 0) or 0) != step:
         return
     if st.session_state.get("phase_step") != step:
@@ -732,23 +629,6 @@ def annie_has_spoken(
 ) -> bool:
     """
     Has the instruction for this task actually been given yet?
-
-    The quiet wait is meant to start once the patient has heard what to do.
-    It used to start when the recorder appeared, and on a browser that plays
-    Annie's clips those are the same moment. On one that refuses them they
-    are not. The clinician reported on 19 and 20 Nov that "it is quiet on my
-    end" arrives as Annie is about to speak; reproduced on 20 Nov by
-    refusing `play()` the way Safari does, and it is this: her clip sits at
-    00:00 behind a play control while the clock runs out behind it.
-
-    So the clock waits for the browser to say the clip has started. The
-    control that carries that message is a real button, hidden by the
-    stylesheet, for the same reason every other automatic step in this app is
-    a real button: if the script never runs, nothing is stranded - the
-    recorder, the written instruction and "Say that again" are all still
-    there, and the only thing lost is a prompt that would have been wrong.
-
-    A task with no clip has nothing to wait for and returns True at once.
     """
     if not settings.get("watch_for_silence", True):
         return False
@@ -786,15 +666,6 @@ def arm_quiet_watchdog(step: int, settings: Dict[str, object]) -> None:
 def handle_recording(step: int, raw: bytes, settings: Dict[str, object]) -> None:
     """
     Judge one submitted recording and route the task to the right phase.
-
-    Three outcomes. Nothing audible arrived, so ask again. The patient asked
-    for the instruction instead of attempting the task, so explain it again.
-    Or it is usable, so measure it and acknowledge it.
-
-    Every outcome is recorded against a fingerprint of the bytes, because
-    `st.audio_input` keeps handing the same file back on every rerun: setting
-    a phase and rerunning without that guard sets it again immediately, and
-    forever.
     """
     fingerprint = hashlib.sha1(raw).hexdigest()
     if st.session_state.fingerprints.get(step) == fingerprint:
@@ -817,10 +688,7 @@ def handle_recording(step: int, raw: bytes, settings: Dict[str, object]) -> None
         set_phase(step, flow.PHASE_SILENCE_RETRY)
         st.rerun()
 
-    # The help scan runs before anything is measured or reported. A
-    # three-word "sorry, what do I do?" would otherwise be graded as a
-    # thirty-second picture description and pull the fluency scores down.
-    transcript = _UNSET
+        transcript = _UNSET
     if step == 4 and settings["stt_on"]:
         transcript = transcribe(audio, model_size=str(settings["model_size"]))
         heard = transcript.text if transcript is not None else None
@@ -885,18 +753,7 @@ def affirmation_dialog(step: int, settings: Dict[str, object]) -> None:
     """
     Annie's acknowledgement, as a pop-up over the task.
 
-    A pop-up rather than another block on the page, which is what the
-    clinician asked for on 18 Nov. The affirmation used to render at the top
-    of a task screen that still carried the recorder, the cue panel, the
-    measurements and a Continue button below it, so a patient scrolling to
-    see what had happened could reach the next task's controls while Annie
-    was still speaking. A dialog puts her over the top of all of it and makes
-    the rest of the page inert until she is done.
-
-    The button is always here. When the check-in is moving on by itself the
-    clip's own `ended` event presses it, but a blocked, missing or paused
-    clip leaves a button the patient can press, so there is no state this can
-    strand someone in.
+    
     """
     played = play_clip(flow.media_for(step).affirm)
     spoken = flow.AFFIRMATION_TEXT.get(step)
@@ -930,25 +787,6 @@ def quiet_voice_started() -> bool:
     """
     Has the quiet prompt's clip actually begun speaking?
 
-    The clinician asked on 21 Nov for the written notice and Annie's voice to
-    arrive together. In the source they already are together - the clip is
-    rendered on the line above the notice - but text paints the instant the
-    page does, and a clip has to be fetched and started, so the words were
-    landing first and she was reading the complaint before hearing it.
-
-    So the text waits to be told. Same hidden-button mechanism as
-    `annie_has_spoken`, in its own container because both gates can be on
-    screen at once watching different clips.
-
-    Keyed on the clip nonce rather than the task: the nonce carries the clip
-    epoch, which moves on every phase change, so coming back to the quiet
-    prompt a second time waits for her again instead of showing the text
-    immediately.
-
-    If the browser will not play the clip at all, the control is pressed
-    anyway after a moment - see `ui.press_when_quiet_clip_plays`. That
-    fallback is the difference between a prompt that is late and a screen
-    that stays empty, which is the fault reported on 19 and 20 Nov.
     """
     clip = paths.find_animation(flow.QUIET_RETRY_AUDIO)
     if clip is None:
@@ -971,12 +809,7 @@ def quiet_voice_started() -> bool:
 def render_silence_retry_phase(step: int) -> None:
     """The quiet prompt, with a way back to the instruction."""
     play_clip(flow.QUIET_RETRY_AUDIO, discreet=True, hand_back=False)
-    # Her words wait for her voice. The two buttons below do NOT: they are the
-    # way out of this screen, and a way out must never depend on a script in
-    # the browser having run. An earlier draft held them back too and
-    # `test_the_quiet_prompt_offers_both_a_retry_and_an_explanation` caught
-    # it, which is the test doing its job - on a browser that refuses the clip
-    # the patient would have been left with no way forward at all.
+    
     if quiet_voice_started():
         st.info(
             "It is quiet on my end. Take a breath whenever you are ready, "
@@ -1014,9 +847,6 @@ def render_clarify_phase(
     # Annie's videos and keeps its player, because there she is on screen.
     played = play_clip(media.clarify, discreet=True)
     if not played:
-        # No clarification clip for this task yet. Replaying the prompt clip
-        # is a weaker version of the same thing rather than nothing at all;
-        # tasks 1 to 3 get their own clips when the clinician sends them.
         played = play_clip(script.animation)
 
     reason = rejection_reason(step)
@@ -1028,8 +858,7 @@ def render_clarify_phase(
     st.caption(script.cue_hint)
 
     if not played and settings["speak"]:
-        # The nonce has to change each time or the browser deduplicates the
-        # utterance and the repeat is silent.
+
         count = st.session_state.clarify_count.get(step, 0)
         components.html(
             ui.speak_script(script.prompt, f"clarify{step}-{count}"), height=0
@@ -1057,11 +886,7 @@ def mic_context() -> mic.MicContext:
 
 def render_mic_warning() -> bool:
     """
-    The one microphone problem we can be certain about, stated plainly.
-
-    Returns True when the page cannot use the microphone at all, so callers
-    can put the recorder in context rather than leaving a dead button on the
-    screen.
+    
     """
     context = mic_context()
     if not context.blocked:
@@ -1095,23 +920,12 @@ def load_image_model(path: str, mtime: float):
     """
     The classifier, loaded once.
 
-    Keyed on the file's modification time as well as its path, so retraining
-    the model and dropping in a new artifact takes effect without restarting
-    the app, which is how she works on the triage side.
     """
     return alzheimer.load_model(Path(path))
 
 
 def render_imaging_view() -> None:
     """
-    The MRI tab, restored on 17 Nov at her request and repaired.
-
-    It previously showed "No classifier artifact found. Set
-    AURACARE_TRIAGE_REPO to your Cognitive_AI_Triage checkout" and nothing
-    else, which is the error she sent back to us. The artifact now ships with
-    the project, so there is normally nothing to configure.
-
-    The model is hers, unchanged. This tab only runs it.
     """
     st.markdown("### MRI dementia-stage classifier")
     st.caption(
@@ -1157,10 +971,7 @@ def render_imaging_view() -> None:
                 for name, value in prediction.probabilities:
                     st.write(f"{name} - {value:.1f}%")
 
-                # The runner-up matters here. On the four labelled images she
-                # sent, the Moderate Dementia scan came back Non Demented at
-                # 51.5% with the right answer second at 27%. Showing only the
-                # top line would hide that the model was close to undecided.
+
                 if len(prediction.probabilities) > 1:
                     gap = (
                         prediction.probabilities[0][1]
@@ -1201,10 +1012,6 @@ def render_welcome(settings: Dict[str, object]) -> None:
     """
     B3. Annie's greeting, on a screen of its own.
 
-    It used to play inside Task 1, so the first thing the patient saw was two
-    Annie videos stacked, the welcome above the task instruction, with the
-    recorder pushed below the fold. A greeting is not a task and does not
-    belong on the task screen.
     """
     st.markdown(f"### {ui.WELCOME_HEADING}")
 
@@ -1231,9 +1038,7 @@ def render_welcome(settings: Dict[str, object]) -> None:
         "can skip anything that will not work for you."
     )
 
-    # Said here, before the first task, because it decides whether the whole
-    # check-in can work. She found this out by trying to record and getting
-    # nothing.
+
     render_mic_warning()
 
     if st.button("Begin the check-in", type="primary", key="welcome_begin"):
@@ -1253,14 +1058,10 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
         unsafe_allow_html=True,
     )
 
-    # Equal halves rather than 3:2, and a medium gap rather than a large one.
-    # At 3:2 with a large gap the clip and the cue panel sat at opposite edges
-    # with a wide empty gutter between them, which is what the clinician asked
-    # to have closed up on 16 Nov.
+
     col_chat, col_cue = st.columns([1, 1], gap="medium")
 
-    # The affirmation is a pop-up over this screen rather than a block on it,
-    # so it is opened here and the task renders behind it as the backdrop.
+
     if phase == flow.PHASE_AFFIRM and step not in st.session_state.affirm_seen:
         affirmation_dialog(step, settings)
 
@@ -1274,11 +1075,7 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
 
         opening = step not in st.session_state.opening_done
 
-        # The prompt stays in the log for the clinical view, but only the
-        # current one is shown here. Rendering the whole log meant Task 3
-        # appeared under Task 1 and Task 2's bubbles and their telemetry
-        # lines, which is a transcript, not a conversation - the clinician
-        # asked to see one instruction at a time.
+
         log_agent(script.prompt)
         st.markdown(ui.agent_bubble(script.prompt), unsafe_allow_html=True)
 
@@ -1291,11 +1088,7 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
         render_mic_warning()
 
         if opening and phase == flow.PHASE_PROMPT:
-            # Annie is still giving the instruction. Showing the recorder
-            # under her is what the clinician saw as "a brief flash of the
-            # next task" on 18 Nov: clicking Continue landed on the controls
-            # for a task whose instruction had not been given yet. Until she
-            # finishes, the only thing here is a way to skip ahead.
+
             if st.button(
                 READY_LABEL,
                 key=f"ready_{step}",
@@ -1355,33 +1148,18 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
                 arm_quiet_watchdog(step, settings)
 
     with col_cue:
-        # Anything she has supplied for this task wins over the built-in cue.
-        # The cue is a stand-in for her artwork, not something to defend: she
-        # has twice tried to send a cake animation for Task 2, so when one
-        # arrives it should need a file copy and nothing else.
         supplied = paths.find_task_visual(script.task_id)
         if supplied is not None:
-            # Keyed so the scripts that wait on Annie can tell her clip from
-            # this one. See `ui.CUE_CONTAINER_KEY`.
-            # The artwork alone goes in the keyed container: it is the panel,
-            # shaped to match the clip beside it, and the label below it
-            # would otherwise sit inside the picture.
+
             with st.container(key=ui.CUE_CONTAINER_KEY):
                 if supplied.suffix.lower() in (".mp4", ".webm"):
-                    # Muted and looping: it is a pacing guide beside Annie,
-                    # who is the one doing the talking. Muted is also what
-                    # lets a browser autoplay it with no gesture, so it needs
-                    # no nudge of its own, and must not be given one.
+
                     st.video(str(supplied), autoplay=True, loop=True,
                              muted=True)
                 else:
-                    # Not stretched to the column: an animation she draws at
-                    # one shape must not be squashed into another, so the
-                    # stylesheet fits it inside the panel instead.
+                    
                     st.image(str(supplied))
-            # The same label and hint the built-in cue carries. Without these
-            # a supplied visual loses the task's name, which is the only
-            # thing on that side of the screen saying what is being measured.
+
             st.markdown(
                 f'<div class="cue-title" style="color:{script.colour}">'
                 f"{script.cue_label}</div>",
@@ -1409,17 +1187,9 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
     # -- results for this task ---------------------------------------------
     result = st.session_state.results.get(step)
     if result is None:
-        # No usable recording yet. Previously this returned straight away,
-        # which also removed the only way forward: with no microphone, or a
-        # recording that failed, the patient was left on this task with no
-        # button and no explanation. A screening tool must not trap someone
-        # on task 1 because one measurement did not work, so the task can be
-        # skipped and is then reported as not attempted rather than as a
-        # normal result.
+        
         if opening and phase == flow.PHASE_PROMPT:
-            # Still Annie's turn. Skip belongs with the recorder, and showing
-            # it here would put a control for this task on screen before its
-            # instruction had been given.
+            
             return
         st.caption(
             "Record this task to see your measurements and continue. "
@@ -1532,10 +1302,7 @@ def render_phq8_intro(settings: Dict[str, object]) -> None:
 
     st.markdown(ui.agent_bubble(INTRO_SCRIPT), unsafe_allow_html=True)
 
-    # Spoken only where there is no clip, for the same reason as the tasks:
-    # Annie's clip carries her own voice and the browser talking over her
-    # makes both unintelligible. Her clip arrived on 16 Nov, so this path is
-    # now the fallback rather than the normal case.
+
     if (
         settings["speak"]
         and clip is None
@@ -1557,9 +1324,7 @@ def render_phq8_intro(settings: Dict[str, object]) -> None:
 def goto_phq8_question(index: int) -> None:
     """Move to a question, and let Annie read it again when it comes round.
 
-    Her script keys the spoken nonce on the index alone, so a question
-    revisited with Previous stays silent. Discarding the nonce lets it be read
-    again, which is the point of having a voice.
+    
     """
     st.session_state.phq_index = index
     st.session_state.spoken.discard(f"phq_q_{index}")
@@ -1584,36 +1349,12 @@ def advance_phq8(index: int) -> None:
 
 def render_phq8_step(settings: Dict[str, object]) -> None:
     """
-    E1 to E3: her introduction, one question per screen, read aloud.
-
-    Rebuilt from her `Phq-8v2.txt`, which is the right approach. It drives
-    everything from Streamlit state rather than from an HTML carousel. Her
-    first version posted answers with `window.parent.postMessage`, which
-    `components.html` cannot receive, so no answer would ever have reached
-    Python and the screening would have recorded nothing at all.
-
-    Four changes from her script:
-
-    * The heading shows `item.text`, the clinical item wording, not
-      `spoken_prompt`. The latter is a spoken sentence, and the first item's
-      reads out all four response options, which is useful to hear and wrong
-      to look at above four buttons that say the same thing.
-    * A question can be skipped. The previous screen let the patient finish
-      with items unanswered, and quietly removing that would trap someone who
-      does not want to answer one. `score_phq8` already prorates a partial
-      response and flags it, or withholds the score below six answers.
-    * `phq_index` and `phq_intro_done` are initialised in `init_state`
-      instead of lazily, so "Start over" actually starts over.
-    * The running total is not shown. That is her decision and it is the
-      right one: a live depression score next to the question being answered
-      invites the patient to manage the number rather than answer honestly.
     """
     if not st.session_state.phq_intro_done:
         render_phq8_intro(settings)
         return
 
-    # Clamped rather than trusted. A stale `phq_index` from an interrupted
-    # session would otherwise index off the end of the list.
+    
     index = max(0, min(int(st.session_state.phq_index), len(PHQ8_ITEMS) - 1))
     item = PHQ8_ITEMS[index]
     answered = st.session_state.phq8_responses.get(item.key)
@@ -1624,10 +1365,7 @@ def render_phq8_step(settings: Dict[str, object]) -> None:
     st.markdown(f"### {item.text}")
     st.write("")
 
-    # E3. Annie reads the question in her own voice. Her eight recordings
-    # arrived on 16 Nov, so the browser voice is now only the fallback for a
-    # question with no clip, and only when prompts are set to be spoken.
-    # The player stays on screen so the patient can hear it again.
+    
     if not play_clip(flow.question_audio(item.key)) and settings["speak"]:
         nonce = f"phq_q_{index}"
         if nonce not in st.session_state.spoken:
@@ -1636,8 +1374,7 @@ def render_phq8_step(settings: Dict[str, object]) -> None:
             )
             st.session_state.spoken.add(nonce)
 
-    # The chosen answer stays highlighted, so a question reached with
-    # Previous shows what was said last time rather than looking unanswered.
+   
     for value, label in enumerate(RESPONSE_OPTIONS):
         if st.button(
             label,
@@ -1672,34 +1409,11 @@ def render_phq8_step(settings: Dict[str, object]) -> None:
 def render_completion(settings: Dict[str, object]) -> None:
     """
     The closing screen, worded for the pathway the check-in ended on.
-
-    Built from the clinician's `Ending video_.txt` with four changes, all
-    recorded in CLIENT_REQUESTS.md section 11. Her script referenced
-    `ui.EMERGENCY_PROPNAT`, which does not exist, so the screen raised
-    AttributeError on the emergency pathway alone: it would have failed only
-    when a patient was in distress and looked fine in every test that did not
-    breach a threshold.
     """
     assessment = current_assessment()
     escalating = assessment.primary_pathway != PATHWAY_ROUTINE
 
-    # F1. Annie's closing clip, chosen by the ending the check-in reached.
-    # She sent two on 17 Nov: one that files the results and wishes the
-    # patient well, and one that says a clinician should look. Playing the
-    # first after an escalation would contradict the banner underneath it,
-    # which is the same mistake her original ending script made in writing.
-    #
-    # The two urgent endings are not interchangeable, and neither of them
-    # reaches the generic fallback below: `closing.mp4` from an older assets
-    # folder files the results and wishes the patient well, which over either
-    # banner is worse than no video at all.
-    #
-    # Crisis is checked first on purpose. A patient can breach a respiratory
-    # threshold and disclose self-harm in the same check-in, and her emergency
-    # clip, supplied 18 Nov, talks only about breathing and 999. In front of
-    # someone who has just said they want to die that answers a question they
-    # did not ask and ignores the one they did, so the crisis ending waits for
-    # its own recording rather than borrowing this one.
+  
     urgent_pathways = (
         PATHWAY_EMERGENCY in assessment.pathways
         or PATHWAY_CRISIS in assessment.pathways
@@ -1716,19 +1430,14 @@ def render_completion(settings: Dict[str, object]) -> None:
         if closing is None:
             closing = paths.find_animation(paths.CLOSING_ANIMATION)
 
-    # Held to a third of the width like the welcome: the clips are portrait,
-    # and at full container width this one pushes the result of the check-in
-    # below the fold.
+    
     if closing is not None:
         _, mid, _ = st.columns([1, 1, 1])
         with mid:
             st.video(str(closing), autoplay=True)
             components.html(ui.autoplay_nudge(clip_nonce(closing)), height=0)
 
-    # Her opening line. It goes on routine and clinician review, and not on
-    # crisis or emergency. See `ui.SCREENING_THANKS` for why. Keyed off those
-    # two pathways rather than off `escalating`, because a clinician review is
-    # not an emergency and the warm line reads perfectly well in front of it.
+    
     urgent = (
         PATHWAY_EMERGENCY in assessment.pathways
         or PATHWAY_CRISIS in assessment.pathways
@@ -1747,15 +1456,7 @@ def render_completion(settings: Dict[str, object]) -> None:
         st.warning(f"### {ui.CLINICIAN_REVIEW_PROMPT}")
         spoken = f"{opener} {ui.CLINICIAN_REVIEW_PROMPT}".strip()
     else:
-        # Only say "complete" when nothing is being escalated. The original
-        # draft showed this message during an escalation, which contradicted
-        # the emergency banner directly above it.
-        #
-        # And only this branch says the results have been filed. The
-        # clinician's draft said "everything is mainly fine" here; a routine
-        # pathway means nothing crossed a provisional threshold, not that the
-        # patient is well, and the prototype is not entitled to the
-        # reassurance. She agreed to this wording on 16 Nov.
+        
         if opener:
             st.markdown(ui.agent_bubble(opener), unsafe_allow_html=True)
         st.success(f"### ✅ {ui.COMPLETION_PROMPT}")
@@ -1765,13 +1466,7 @@ def render_completion(settings: Dict[str, object]) -> None:
         components.html(ui.speak_script(spoken, "completion"), height=0)
         st.session_state.spoken.add("completion")
 
-    # The self-harm check reads the Task 4 transcript and nothing else, so no
-    # transcript means that check did not run and the crisis pathway cannot
-    # fire however the patient answered. Found on 18 Nov on a machine whose
-    # disk was too full for the recogniser to load: the task screen said
-    # "transcript unavailable", but the ending said "check-in complete" with
-    # nothing to say a safety check had been skipped. Said here, where the
-    # pathway is decided.
+  
     transcript = st.session_state.transcript
     if (
         4 in st.session_state.results
@@ -1906,11 +1601,7 @@ def render_clinical_view() -> None:
             )
     frame = pd.DataFrame(rows)
     if frame.empty:
-        # No task produced a measurable indicator. This happens when every
-        # task was skipped, which the check-in allows on purpose so that a
-        # broken microphone cannot trap the patient on Task 1. The
-        # questionnaire still scores, so the rest of this view is meaningful
-        # and only the table has nothing to put in it.
+        
         st.caption(
             "No acoustic indicators were measured. Every task was skipped or "
             "could not be measured, so the assessment below rests on the "
@@ -1927,9 +1618,7 @@ def render_clinical_view() -> None:
 
     st.markdown("#### Simulated FHIR dispatch")
     bundle = build_bundle(assessment, patient_id)
-    # The resource tally that sat here was removed at the clinician's request
-    # on 17 Nov. `summarise_bundle` is still exercised by the tests, and the
-    # same counts are visible in the bundle itself further down this view.
+    
 
     comm = next(
         e["resource"] for e in bundle["entry"]
@@ -1967,11 +1656,7 @@ def render_clinical_view() -> None:
 
     if st.session_state.log:
         with st.expander("Session log"):
-            # The check-in screen shows one instruction at a time, so this is
-            # the only place the whole exchange can be read: what Annie said,
-            # what was recorded, and the telemetry line for each task. It also
-            # records the retries. A patient who needed the instruction three
-            # times is something a clinician should be able to see.
+            
             for role, body in st.session_state.log:
                 who = {"agent": "Annie", "patient": "Patient"}.get(
                     role, "System"
@@ -2058,12 +1743,7 @@ def main() -> None:
 
     tab_flow, tab_patient, tab_clinical, tab_mri, tab_ref = st.tabs(
         [
-            # Short labels on purpose. Streamlit scrolls the tab strip
-            # horizontally when it overflows, and the clinician lost the
-            # first tab off the left edge on a narrow window - she could not
-            # find the tasks at all. They all have to fit. "MRI" is in that
-            # position in the screenshot she sent on 17 Nov asking for the
-            # tab back, so it keeps both the name and the place.
+           
             "Check-in",
             "Results",
             "Clinical",
