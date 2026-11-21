@@ -2,12 +2,8 @@
 #
 # Versions are pinned to what the build was tested against. scikit-learn in
 # particular must stay at 1.7.1: the severity artifact in the
-# Cognitive_AI_Triage repository was pickled with that version, and unpickling
+# Cognitive_AI_Triage repository was pickled with that version and unpickling
 # an estimator under a different minor version produces
-# InconsistentVersionWarning and, in some cases, silently wrong behaviour.
-#
-# OpenCV was removed with the MRI classifier, which now lives in the
-# Cognitive_AI_Triage project.
 
 # -- core ---------------------------------------------------------------------
 streamlit==1.47.1
