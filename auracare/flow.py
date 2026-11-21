@@ -60,7 +60,7 @@ class TaskMedia:
 #   4 "Look at the picture on your screen and describe what you see happening
 #      in your own words."
 #
-  TASK_MEDIA: Dict[int, TaskMedia] = {
+TASK_MEDIA: Dict[int, TaskMedia] = {
     1: TaskMedia(affirm="task1_affirm.mp4", clarify="task1_clarify.mp3"),
     2: TaskMedia(affirm="task2_affirm.mp4", clarify="task2_clarify.mp3"),
     3: TaskMedia(affirm="task3_affirm.mp4"),
