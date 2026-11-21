@@ -269,7 +269,7 @@ PROMPT_CLIP_SECONDS: Dict[int, float] = {
 
 # The clinician's number, and a reasonable one: long enough to take a breath,
 # short enough that the silence does not become uncomfortable.
-SILENCE_GRACE_SECONDS = 10.0
+SILENCE_GRACE_SECONDS = 7.0
 
 # Used when a task has no measured clip duration, so a new task cannot
 # accidentally get a zero-length window.
