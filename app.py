@@ -921,12 +921,13 @@ def affirmation_dialog(step: int, settings: Dict[str, object]) -> None:
 
 
 def render_silence_retry_phase(step: int) -> None:
-    """The quiet prompt, with a way back to the instruction."""
+    #"""The quiet prompt, with a way back to the instruction."""
     play_clip(flow.QUIET_RETRY_AUDIO, discreet=True, hand_back=False)
     st.info(
         "It is quiet on my end. Take a breath whenever you are ready, then "
         "record it again."
     )
+    """The quiet prompt, with a way back to the instruction."""
     reason = rejection_reason(step)
     if reason:
         st.caption(f"What I saw: {reason}.")
