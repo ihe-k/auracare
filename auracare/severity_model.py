@@ -1,54 +1,6 @@
 """
 Optional adapter for the repository's pre-trained severity model.
 
-This exists because it was asked for, and it is wired up honestly rather than
-flatteringly. Read this before using its output for anything.
-
-What the model is
-    A RandomForestRegressor over 10,249 features, trained on DAIC-WOZ. The
-    features are 10 blocks of 1,024 (audio mean/std, facial-keypoint mean/std,
-    gaze-confidence mean/std, pose-confidence mean/std, text-embedding
-    mean/std), then `Gender`, then the 8 PHQ-8 item scores.
-
-What a microphone can supply
-    8 of 10,249 inputs are PHQ-8 items - 0.08 % of the feature space - plus
-    `Gender`. The other 10,240 require synchronised video (facial keypoints,
-    gaze, pose) and the original DAIC-WOZ audio and text-embedding pipelines,
-    none of which a voice-only screening flow has. Those blocks are imputed at
-    the scaler's own training means, which is the most defensible imputation
-    available because it standardises to exactly zero, the training-set centre.
-
-What it actually does, measured rather than assumed
-    Running `sensitivity_sweep()` against the shipped artifact gives a result
-    worth stating precisely, because the obvious guess is wrong. The model is
-    *not* insensitive to PHQ-8: sweeping all eight items from 0 to 3 moves the
-    output from 0.42 to 12.63, traversing about 51 % of the 0-24 scale. The
-    problem is the shape of that response, not its size:
-
-      true PHQ-8   true band            model output   model band
-               0   None/minimal                 0.42   None/minimal   ok
-               8   Mild                         8.13   Mild           ok
-              16   Moderately severe           10.78   Moderate       under
-              24   Severe                      12.63   Moderate       under
-
-    It tracks the bottom half of the scale and then saturates, compressing
-    everything above 16 into "moderate". Both banding errors are
-    under-estimates, which on a screening instrument is the dangerous
-    direction: a severely depressed patient is reported as moderate.
-
-    Per-item sensitivity is also lopsided. Maxing one item at a time gives
-    +4.95 for PHQ8_NoInterest against roughly +1 for most others, and exactly
-    +0.00 for PHQ8_Moving - the model ignores that item entirely. So it behaves
-    as a function of one or two items rather than of the instrument.
-
-What its own metrics say
-    Stored inside the artifact: train R2 0.964 / MAE 0.75, validation R2 0.711
-    / MAE 2.43, test R2 -0.751 / MAE 6.01. A negative test R2 means the model
-    performs worse on held-out data than always predicting the training mean.
-    On a 0-24 scale an MAE of 6.0 cannot separate "none/minimal" from
-    "moderately severe".
-
-Therefore
     `risk.py` scores depression severity from the PHQ-8 sum against published
     cut-points, which traverses 0-24 exactly by construction. This module is
     available for comparison, is clearly labelled experimental everywhere it
