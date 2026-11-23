@@ -86,16 +86,13 @@ ANALYSERS = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Session state
-# ---------------------------------------------------------------------------
 def init_state() -> None:
     defaults = {
         "step": 1,
-        "recordings": {},       # task_id -> raw bytes
-        "fingerprints": {},     # task_id -> sha1 of the bytes analysed
-        "results": {},          # task_id -> analysis result object
-        "quality": {},          # task_id -> QualityReport
+        "recordings": {},
+        "fingerprints": {},
+        "results": {},
+        "quality": {},
         "transcript": None,
         "phq8_responses": empty_responses(),
         "thresholds": Thresholds(),
@@ -104,51 +101,23 @@ def init_state() -> None:
         "intercepts": [],
         "finished": False,
         "spoken": set(),
-        # Tasks the patient could not complete, so the report can say "not
-        # attempted" rather than silently omitting them.
         "skipped": set(),
-        # -- conversation state ------------------------------------------
-        # Which phase the current task is in, and which task that phase
-        # belongs to. The second half matters: a phase stored on its own
-        # follows the patient into the next task.
         "phase": flow.PHASE_PROMPT,
         "phase_step": 1,
-        # Bumped whenever Annie is meant to speak again. It separates a
-        # deliberate repeat, which must restart the clip, from an incidental
-        # rerun, which must not. See `play_clip`.
         "clip_epoch": 0,
-        # Tasks whose opening instruction Annie has finished giving. Until a
-        # task is in here the recorder is not shown, so the first thing the
-        # patient sees on arriving at a task is Annie, not the controls.
         "opening_done": set(),
-        # Tasks whose instruction clip has actually been heard starting. The
-        # quiet wait does not run before this: see `annie_has_spoken`.
         "annie_spoke": set(),
         "quiet_spoke": set(),
-        # Tasks whose affirmation pop-up has been shown and dismissed. Without
-        # it the dialog reopens on every rerun of the task behind it.
         "affirm_seen": set(),
-        # task_id -> (fingerprint, reason). Recordings judged unusable, kept
-        # by fingerprint so the same file cannot be judged twice. Without it
-        # the retry paths loop forever: st.audio_input hands back the same
-        # bytes on every rerun.
         "rejected": {},
-        # task_id -> monotonic deadline for the quiet prompt.
         "silence_deadline": {},
-        # task_id -> how many times the instruction has been repeated, so the
-        # browser voice speaks again rather than deduplicating itself.
         "clarify_count": {},
-        # -- PHQ-8 flow ---------------------------------------------------
-        
         "phq_intro_done": False,
         "phq_index": 0,
-        # Annie's greeting is a screen of its own, ahead of Task 1.
         "welcome_done": False,
-        
         "diagnostic_summary": None,
-        # The rendered bytes of the above, drawn once. See
-        # `build_diagnostic_summary`.
         "diagnostic_pdf": None,
+        "main_section": "Check-in",
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -179,12 +148,11 @@ def reset_all() -> None:
         "diagnostic_summary", "diagnostic_pdf",
     ):
         st.session_state.pop(key, None)
+    st.session_state["main_section"] = "Check-in"
+    st.session_state["task_nav"] = "Task 1"
     init_state()
 
 
-# ---------------------------------------------------------------------------
-# Sidebar
-# ---------------------------------------------------------------------------
 def render_sidebar() -> Dict[str, object]:
     st.sidebar.title("⚙️ Configuration")
 
@@ -277,8 +245,6 @@ def render_sidebar() -> Dict[str, object]:
         st.markdown(f'<div class="cut-points">{rows}</div>',
                     unsafe_allow_html=True)
 
-    # Full width, not half. The second column was never used, and at half
-    # the sidebar's width the label broke as "Reset threshold / s".
     if st.sidebar.button("Reset thresholds", use_container_width=True):
         thresholds.reset()
         st.rerun()
@@ -309,10 +275,10 @@ def render_sidebar() -> Dict[str, object]:
         f"Severity model: {'found' if found['severity_model'] else 'not found'}"
     )
 
-    if st.sidebar.button("\U0001f501 Start over", type="secondary",
-                         use_container_width=True):
-        reset_all()
-        st.rerun()
+    st.sidebar.button(
+        "\U0001f501 Start over", type="secondary",
+        use_container_width=True, on_click=reset_all,
+    )
 
     return {
         "stt_on": stt_on,
@@ -323,9 +289,6 @@ def render_sidebar() -> Dict[str, object]:
     }
 
 
-# ---------------------------------------------------------------------------
-# Analysis
-# ---------------------------------------------------------------------------
 _UNSET = object()
 
 
@@ -335,10 +298,9 @@ def analyse_task(
     settings: Dict[str, object],
     transcript=_UNSET,
 ) -> None:
-    """Decode, quality-check and analyse one task recording."""
     fingerprint = hashlib.sha1(raw).hexdigest()
     if st.session_state.fingerprints.get(task_id) == fingerprint:
-        return  # already analysed this exact recording
+        return
 
     params = SignalParams()
     try:
@@ -371,7 +333,6 @@ def analyse_task(
 
 
 def summarise_result(task_id: int, result) -> str:
-    """One compact telemetry line for the conversation log."""
     if task_id == 1:
         return (
             f"telemetry · phonation {ui.fmt_value(result.phonation_duration_s, 's')}"
@@ -391,7 +352,6 @@ def summarise_result(task_id: int, result) -> str:
             f" · {result.n_syllables} syllables"
             f" · rhythm CV {ui.fmt_value(result.rhythm_cv, '', 3)}"
         )
-
     return (
         f"telemetry · pause ratio {ui.fmt_value(result.pause_ratio, '', 3)}"
         f" · speech rate {ui.fmt_value(result.speech_rate_sylls, 'syll/s')}"
@@ -406,7 +366,6 @@ def summarise_result(task_id: int, result) -> str:
 
 
 def current_assessment():
-    """Grade whatever has been measured so far."""
     return assess_screening(
         st.session_state.results.get(1),
         st.session_state.results.get(2),
@@ -418,9 +377,6 @@ def current_assessment():
 
 
 def build_diagnostic_summary() -> None:
-    """
-    Freeze the finished check-in into the patient's takeaway.
-    """
     voice = getattr(st.session_state.results.get(1), "voice", None)
     try:
         summary = generate_diagnostic_summary(
@@ -433,21 +389,15 @@ def build_diagnostic_summary() -> None:
             patient_id=st.session_state.patient_id,
             assessment=current_assessment(),
         )
-  
         st.session_state.diagnostic_summary = summary
         st.session_state.diagnostic_pdf = render_pdf(summary)
-    except Exception as exc:  # noqa: BLE001
-        # A takeaway that cannot be built must not take the ending with it.
+    except Exception as exc:
         log_system(f"summary could not be prepared: {exc}")
         st.session_state.diagnostic_summary = None
         st.session_state.diagnostic_pdf = None
 
 
 def offer_summary_download(heading: str, key: str) -> None:
-    """
-    The takeaway, as a native download button.
-
-    """
     summary = st.session_state.get("diagnostic_summary")
     data = st.session_state.get("diagnostic_pdf")
     if not summary or not data:
@@ -469,10 +419,6 @@ def offer_summary_download(heading: str, key: str) -> None:
 
 
 def offer_summary_email(key: str) -> None:
-    """
-    The same summary as an email, opened in the patient's own mail client.
-
-    """
     summary = st.session_state.get("diagnostic_summary")
     if not summary:
         return
@@ -499,9 +445,6 @@ def offer_summary_email(key: str) -> None:
 
 
 def check_intercept(task_id: int) -> Optional[str]:
-    """
- 
-    """
     assessment = current_assessment()
     task = assessment.task(task_id)
     if task is not None and task.intercept_triggered:
@@ -509,13 +452,7 @@ def check_intercept(task_id: int) -> Optional[str]:
     return None
 
 
-# ---------------------------------------------------------------------------
-# Conversation phase
-# ---------------------------------------------------------------------------
 def current_phase(step: int) -> str:
-    """
-    The phase this task step is in, always a member of `flow.PHASES`.
-    """
     if st.session_state.get("phase_step") != step:
         st.session_state.phase_step = step
         st.session_state.phase = flow.PHASE_PROMPT
@@ -525,40 +462,25 @@ def current_phase(step: int) -> str:
 
 
 def clip_nonce(clip) -> str:
-    """Identify one rendering of one clip, for the autoplay nudge."""
     return f"{clip.name}#{st.session_state.get('clip_epoch', 0)}"
 
 
 def bump_clip_epoch() -> None:
-    """Mark that Annie should speak again, even if it is the same clip."""
     st.session_state.clip_epoch = st.session_state.get("clip_epoch", 0) + 1
 
 
 def set_phase(step: int, phase: str) -> None:
-    """Move this task to `phase`. Returning to PROMPT restarts the quiet wait."""
     st.session_state.phase = phase
     st.session_state.phase_step = step
-    # A phase change is Annie taking her turn, so whatever clip it renders is
-    # meant to be heard - even when it is the same file that just played. See
-    # `play_clip` for why that needs saying out loud.
     bump_clip_epoch()
-    # The quiet wait belongs to the prompt screen and to nothing else, so any
-    # move away from it stops the clock, not only a move back to it. Leaving
-    # the old deadline in place while the task sat in AFFIRM is half of what
-    # let the quiet prompt fire on the task after this one; see
-    # `quiet_watchdog` for the other half.
     st.session_state.silence_deadline.pop(step, None)
 
 
 def rejection_reason(step: int) -> Optional[str]:
-    """Why the last recording for this task was not measured, if it was not."""
     entry = st.session_state.rejected.get(step)
     return entry[1] if entry else None
 
 
-# ---------------------------------------------------------------------------
-# Annie's clips
-# ---------------------------------------------------------------------------
 AUDIO_SUFFIXES = (".mp3", ".wav", ".m4a", ".ogg", ".opus")
 
 
@@ -566,16 +488,12 @@ def play_clip(
     filename: Optional[str], *, autoplay: bool = True,
     discreet: bool = False, hand_back: bool = True,
 ) -> bool:
-    """
-    Render one of Annie's clips, video or audio. False if it is not installed.
-    """
     clip = paths.find_animation(filename)
     if clip is None:
         return False
     if clip.suffix.lower() in AUDIO_SUFFIXES:
         fmt = "audio/mpeg" if clip.suffix.lower() == ".mp3" else "audio/wav"
         if discreet:
-
             key = (ui.VOICE_CONTAINER_KEY if hand_back
                    else ui.QUIET_CONTAINER_KEY)
             with st.container(key=key):
@@ -585,22 +503,14 @@ def play_clip(
         if autoplay:
             components.html(ui.autoplay_nudge(clip_nonce(clip)), height=0)
         return True
-
     st.video(str(clip), autoplay=autoplay)
     if autoplay:
         components.html(ui.autoplay_nudge(clip_nonce(clip)), height=0)
     return True
 
 
-# ---------------------------------------------------------------------------
-# Noticing the silence
-# ---------------------------------------------------------------------------
 @st.fragment(run_every=2.0)
 def quiet_watchdog(step: int, deadline: float) -> None:
-    """
-    Hand over to the quiet prompt when nothing has been recorded in time.
-    """
-
     if int(st.session_state.get("step", 0) or 0) != step:
         return
     if st.session_state.get("phase_step") != step:
@@ -611,7 +521,6 @@ def quiet_watchdog(step: int, deadline: float) -> None:
         return
     if step in st.session_state.get("results", {}):
         return
-    # Annie is still giving the instruction. Nobody is being quiet yet.
     if step not in st.session_state.get("opening_done", set()):
         return
     if step not in st.session_state.get("annie_spoke", set()):
@@ -627,9 +536,6 @@ def quiet_watchdog(step: int, deadline: float) -> None:
 def annie_has_spoken(
     step: int, script: ui.TaskScript, settings: Dict[str, object]
 ) -> bool:
-    """
-    Has the instruction for this task actually been given yet?
-    """
     if not settings.get("watch_for_silence", True):
         return False
     if step in st.session_state.annie_spoke:
@@ -650,7 +556,6 @@ def annie_has_spoken(
 
 
 def arm_quiet_watchdog(step: int, settings: Dict[str, object]) -> None:
-    """Start, or keep running, the quiet wait for this task."""
     if not settings.get("watch_for_silence", True):
         return
     deadline = st.session_state.silence_deadline.get(step)
@@ -660,13 +565,7 @@ def arm_quiet_watchdog(step: int, settings: Dict[str, object]) -> None:
     quiet_watchdog(step, deadline)
 
 
-# ---------------------------------------------------------------------------
-# Taking a recording
-# ---------------------------------------------------------------------------
 def handle_recording(step: int, raw: bytes, settings: Dict[str, object]) -> None:
-    """
-    Judge one submitted recording and route the task to the right phase.
-    """
     fingerprint = hashlib.sha1(raw).hexdigest()
     if st.session_state.fingerprints.get(step) == fingerprint:
         return
@@ -688,7 +587,7 @@ def handle_recording(step: int, raw: bytes, settings: Dict[str, object]) -> None
         set_phase(step, flow.PHASE_SILENCE_RETRY)
         st.rerun()
 
-        transcript = _UNSET
+    transcript = _UNSET
     if step == 4 and settings["stt_on"]:
         transcript = transcribe(audio, model_size=str(settings["model_size"]))
         heard = transcript.text if transcript is not None else None
@@ -710,17 +609,10 @@ def handle_recording(step: int, raw: bytes, settings: Dict[str, object]) -> None
         st.rerun()
 
 
-# ---------------------------------------------------------------------------
-# What Annie does in each phase
-# ---------------------------------------------------------------------------
 def render_prompt_phase(
     step: int, script: ui.TaskScript, settings: Dict[str, object]
 ) -> None:
-    """The instruction, as a clip where one exists and as speech where not."""
     if play_clip(script.animation):
-        # The clip carries Annie's own voice. The browser speaking over her
-        # would make both unintelligible, so the text-to-speech path is only
-        # for tasks with no clip.
         return
     if settings["speak"]:
         nonce = f"task{step}"
@@ -729,52 +621,45 @@ def render_prompt_phase(
             st.session_state.spoken.add(nonce)
 
 
-# Matched from JavaScript by its exact text, so it is written once.
 READY_LABEL = "I am ready"
 
 
 def next_step_label(step: int) -> str:
-    """What the button after task `step` says. One wording, used everywhere."""
     return "Continue to the questions" if step == 4 else f"Continue to Task {step + 1}"
 
 
 def leave_task(step: int) -> None:
-    """Finish with this task and move to whatever comes after it."""
     st.session_state.affirm_seen.add(step)
-    # Whatever is left of this task's quiet wait goes with it.
     st.session_state.silence_deadline.pop(step, None)
     st.session_state.step = step + 1
     set_phase(step + 1, flow.PHASE_PROMPT)
     st.rerun()
 
 
-@st.dialog("Task complete")
-def affirmation_dialog(step: int, settings: Dict[str, object]) -> None:
-    """
-    Annie's acknowledgement, as a pop-up over the task.
+def navigate_task_from_menu() -> None:
+    selected = str(st.session_state.get("task_nav", "Task 1"))
+    target = int(selected.rsplit(" ", 1)[-1])
+    if target != int(st.session_state.step):
+        st.session_state.step = target
+        set_phase(target, flow.PHASE_PROMPT)
 
-    
-    """
+
+def open_results_section() -> None:
+    st.session_state.main_section = "Results"
+
+
+def affirmation_dialog(step: int, settings: Dict[str, object]) -> None:
     played = play_clip(flow.media_for(step).affirm)
     spoken = flow.AFFIRMATION_TEXT.get(step)
     if not played:
         st.success(spoken or "Thank you, that is recorded.")
     elif spoken:
-        # What she says, in writing beneath her. The clip carries the words,
-        # and a patient with the sound off still gets them.
         st.markdown(ui.agent_bubble(spoken), unsafe_allow_html=True)
 
-    label = next_step_label(step)
+    label = "Next"
     if st.button(label, type="primary", use_container_width=True,
                  key=f"affirm_next_{step}"):
         leave_task(step)
-
-    if st.button("Show my measurements", use_container_width=True,
-                 key=f"affirm_stay_{step}",
-                 help="Stay on this task and read what was measured."):
-        st.session_state.affirm_seen.add(step)
-        set_phase(step, flow.PHASE_PROMPT)
-        st.rerun()
 
     if played and settings.get("auto_advance", True):
         clip = paths.find_animation(flow.media_for(step).affirm)
@@ -784,13 +669,8 @@ def affirmation_dialog(step: int, settings: Dict[str, object]) -> None:
 
 
 def quiet_voice_started() -> bool:
-    """
-    Has the quiet prompt's clip actually begun speaking?
-
-    """
     clip = paths.find_animation(flow.QUIET_RETRY_AUDIO)
     if clip is None:
-        # Nothing to wait for. The notice is the whole prompt in that case.
         return True
     nonce = clip_nonce(clip)
     if nonce in st.session_state.quiet_spoke:
@@ -807,9 +687,7 @@ def quiet_voice_started() -> bool:
 
 
 def render_silence_retry_phase(step: int) -> None:
-    """The quiet prompt, with a way back to the instruction."""
     play_clip(flow.QUIET_RETRY_AUDIO, discreet=True, hand_back=False)
-    
     if quiet_voice_started():
         st.info(
             "It is quiet on my end. Take a breath whenever you are ready, "
@@ -841,10 +719,7 @@ def render_silence_retry_phase(step: int) -> None:
 def render_clarify_phase(
     step: int, script: ui.TaskScript, settings: Dict[str, object]
 ) -> None:
-    """The instruction given again, on request or after a confused answer."""
     media = flow.media_for(step)
-    # Voice-only, so heard rather than seen. The fallback below is one of
-    # Annie's videos and keeps its player, because there she is on screen.
     played = play_clip(media.clarify, discreet=True)
     if not played:
         played = play_clip(script.animation)
@@ -858,7 +733,6 @@ def render_clarify_phase(
     st.caption(script.cue_hint)
 
     if not played and settings["speak"]:
-
         count = st.session_state.clarify_count.get(step, 0)
         components.html(
             ui.speak_script(script.prompt, f"clarify{step}-{count}"), height=0
@@ -874,20 +748,14 @@ def render_clarify_phase(
 
 
 def mic_context() -> mic.MicContext:
-    """What the browser's address says about microphone access."""
     try:
         url = st.context.url
     except Exception:
-        # st.context.url arrived in a later Streamlit than the floor we
-        # support, and raises outside a script run. No URL means no claim.
         url = None
     return mic.diagnose(url)
 
 
 def render_mic_warning() -> bool:
-    """
-    
-    """
     context = mic_context()
     if not context.blocked:
         return False
@@ -901,7 +769,6 @@ def render_mic_warning() -> bool:
 
 
 def render_mic_help() -> None:
-    """Everything else that stops a microphone working, in order."""
     with st.expander("Microphone not working?"):
         for n, (title, detail) in enumerate(mic.TROUBLESHOOTING, start=1):
             st.markdown(f"**{n}. {title}**")
@@ -912,21 +779,12 @@ def render_mic_help() -> None:
         )
 
 
-# ---------------------------------------------------------------------------
-# MRI dementia-stage classifier
-# ---------------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def load_image_model(path: str, mtime: float):
-    """
-    The classifier, loaded once.
-
-    """
     return alzheimer.load_model(Path(path))
 
 
 def render_imaging_view() -> None:
-    """
-    """
     st.markdown("### MRI dementia-stage classifier")
     st.caption(
         "Screening prototype, not a diagnosis. This is the classifier from "
@@ -971,7 +829,6 @@ def render_imaging_view() -> None:
                 for name, value in prediction.probabilities:
                     st.write(f"{name} - {value:.1f}%")
 
-
                 if len(prediction.probabilities) > 1:
                     gap = (
                         prediction.probabilities[0][1]
@@ -1005,20 +862,11 @@ def render_imaging_view() -> None:
         st.caption(f"Artifact: `{artifact}`")
 
 
-# ---------------------------------------------------------------------------
-# Screening flow
-# ---------------------------------------------------------------------------
 def render_welcome(settings: Dict[str, object]) -> None:
-    """
-    B3. Annie's greeting, on a screen of its own.
-
-    """
     st.markdown(f"### {ui.WELCOME_HEADING}")
 
     clip = paths.find_animation(paths.INTRO_ANIMATION)
     if clip is not None:
-        # The intro is 1184x1344 and portrait, so at full container width it
-        # takes over the page. Half the width, centred.
         _, mid, _ = st.columns([1, 2, 1])
         with mid:
             st.video(str(clip), autoplay=True)
@@ -1037,7 +885,6 @@ def render_welcome(settings: Dict[str, object]) -> None:
         "Four short tasks using your microphone, then eight questions. You "
         "can skip anything that will not work for you."
     )
-
 
     render_mic_warning()
 
@@ -1058,12 +905,11 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
         unsafe_allow_html=True,
     )
 
-
-    col_chat, col_cue = st.columns([1, 1], gap="medium")
-
-
     if phase == flow.PHASE_AFFIRM and step not in st.session_state.affirm_seen:
         affirmation_dialog(step, settings)
+        return
+
+    col_chat, col_cue = st.columns([1, 1], gap="medium")
 
     with col_chat:
         if phase == flow.PHASE_SILENCE_RETRY:
@@ -1074,7 +920,6 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
             render_prompt_phase(step, script, settings)
 
         opening = step not in st.session_state.opening_done
-
 
         log_agent(script.prompt)
         st.markdown(ui.agent_bubble(script.prompt), unsafe_allow_html=True)
@@ -1088,7 +933,6 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
         render_mic_warning()
 
         if opening and phase == flow.PHASE_PROMPT:
-
             if st.button(
                 READY_LABEL,
                 key=f"ready_{step}",
@@ -1106,13 +950,9 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
                     height=0,
                 )
             elif clip is None:
-                # Nothing to wait for, so do not make the patient wait.
                 st.session_state.opening_done.add(step)
                 st.rerun()
         else:
-            # 2:1 rather than 3:1. With the chat column now half the width
-            # instead of three fifths, a quarter of it was too narrow for the
-            # button label and "Say that again" wrapped onto two lines.
             col_rec, col_help = st.columns([2, 1], gap="medium")
             with col_rec:
                 raw_file = st.audio_input(
@@ -1120,8 +960,6 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
                     label_visibility="collapsed",
                 )
             with col_help:
-                # Vertical alignment with the recorder, which carries its own
-                # label row even when the label is collapsed.
                 st.write("")
                 if st.button(
                     "Say that again",
@@ -1150,16 +988,12 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
     with col_cue:
         supplied = paths.find_task_visual(script.task_id)
         if supplied is not None:
-
             with st.container(key=ui.CUE_CONTAINER_KEY):
                 if supplied.suffix.lower() in (".mp4", ".webm"):
-
                     st.video(str(supplied), autoplay=True, loop=True,
                              muted=True)
                 else:
-                    
                     st.image(str(supplied))
-
             st.markdown(
                 f'<div class="cue-title" style="color:{script.colour}">'
                 f"{script.cue_label}</div>",
@@ -1184,12 +1018,9 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
                 )
         st.caption(f"**Safety check:** {script.safety_check}")
 
-    # -- results for this task ---------------------------------------------
     result = st.session_state.results.get(step)
     if result is None:
-        
         if opening and phase == flow.PHASE_PROMPT:
-            
             return
         st.caption(
             "Record this task to see your measurements and continue. "
@@ -1237,20 +1068,40 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
         log_agent(ui.EMERGENCY_PROMPT)
 
     st.write("")
-    col_a, col_b = st.columns([1, 3])
-    label = next_step_label(step)
-    if col_a.button(label, type="primary", use_container_width=True,
-                    key=f"continue_{step}"):
-        leave_task(step)
+    with st.container(key="task-footer"):
+        col_back, col_play, col_next = st.columns([1, 1, 1], gap="small")
+        if col_back.button(
+            "‹ Back", key=f"task_back_{step}", use_container_width=True,
+        ):
+            if step == 1:
+                st.session_state.welcome_done = False
+            else:
+                st.session_state.step = step - 1
+                set_phase(step - 1, flow.PHASE_PROMPT)
+            st.rerun()
+        with col_play:
+            if st.button(
+                "▶ Play again", key=f"task_play_{step}",
+                use_container_width=True,
+            ):
+                st.session_state.clarify_count[step] = (
+                    st.session_state.clarify_count.get(step, 0) + 1
+                )
+                set_phase(step, flow.PHASE_CLARIFY)
+                st.rerun()
+        if col_next.button(
+            "Next", type="primary", use_container_width=True,
+            key=f"continue_{step}",
+        ):
+            leave_task(step)
     if reason:
-        col_b.caption(
+        st.caption(
             "You can continue the check-in; the intercept has already been "
             "recorded and appears in the clinical view."
         )
 
 
 def render_task_metrics(task_id: int, result) -> None:
-    """Near-real-time telemetry for the task just recorded."""
     st.markdown(f"##### Task {task_id} measurements")
     assessment = current_assessment()
     task = assessment.task(task_id)
@@ -1290,7 +1141,6 @@ def render_task_metrics(task_id: int, result) -> None:
 
 
 def render_phq8_intro(settings: Dict[str, object]) -> None:
-    """E1. Her introduction to the questions, then a Begin button."""
     st.markdown(f"### {INTRO_HEADING}")
 
     clip = paths.find_animation(paths.PHQ8_INTRO_ANIMATION)
@@ -1301,7 +1151,6 @@ def render_phq8_intro(settings: Dict[str, object]) -> None:
             components.html(ui.autoplay_nudge(clip_nonce(clip)), height=0)
 
     st.markdown(ui.agent_bubble(INTRO_SCRIPT), unsafe_allow_html=True)
-
 
     if (
         settings["speak"]
@@ -1322,16 +1171,11 @@ def render_phq8_intro(settings: Dict[str, object]) -> None:
 
 
 def goto_phq8_question(index: int) -> None:
-    """Move to a question, and let Annie read it again when it comes round.
-
-    
-    """
     st.session_state.phq_index = index
     st.session_state.spoken.discard(f"phq_q_{index}")
 
 
 def save_phq8_answer(key: str, value) -> None:
-    """Record one answer. `None` means the patient chose not to answer."""
     responses = dict(st.session_state.phq8_responses)
     responses[key] = value
     st.session_state.phq8_responses = responses
@@ -1348,13 +1192,10 @@ def advance_phq8(index: int) -> None:
 
 
 def render_phq8_step(settings: Dict[str, object]) -> None:
-    """
-    """
     if not st.session_state.phq_intro_done:
         render_phq8_intro(settings)
         return
 
-    
     index = max(0, min(int(st.session_state.phq_index), len(PHQ8_ITEMS) - 1))
     item = PHQ8_ITEMS[index]
     answered = st.session_state.phq8_responses.get(item.key)
@@ -1365,7 +1206,6 @@ def render_phq8_step(settings: Dict[str, object]) -> None:
     st.markdown(f"### {item.text}")
     st.write("")
 
-    
     if not play_clip(flow.question_audio(item.key)) and settings["speak"]:
         nonce = f"phq_q_{index}"
         if nonce not in st.session_state.spoken:
@@ -1374,7 +1214,6 @@ def render_phq8_step(settings: Dict[str, object]) -> None:
             )
             st.session_state.spoken.add(nonce)
 
-   
     for value, label in enumerate(RESPONSE_OPTIONS):
         if st.button(
             label,
@@ -1407,13 +1246,9 @@ def render_phq8_step(settings: Dict[str, object]) -> None:
 
 
 def render_completion(settings: Dict[str, object]) -> None:
-    """
-    The closing screen, worded for the pathway the check-in ended on.
-    """
     assessment = current_assessment()
     escalating = assessment.primary_pathway != PATHWAY_ROUTINE
 
-  
     urgent_pathways = (
         PATHWAY_EMERGENCY in assessment.pathways
         or PATHWAY_CRISIS in assessment.pathways
@@ -1430,14 +1265,12 @@ def render_completion(settings: Dict[str, object]) -> None:
         if closing is None:
             closing = paths.find_animation(paths.CLOSING_ANIMATION)
 
-    
     if closing is not None:
         _, mid, _ = st.columns([1, 1, 1])
         with mid:
             st.video(str(closing), autoplay=True)
             components.html(ui.autoplay_nudge(clip_nonce(closing)), height=0)
 
-    
     urgent = (
         PATHWAY_EMERGENCY in assessment.pathways
         or PATHWAY_CRISIS in assessment.pathways
@@ -1456,7 +1289,6 @@ def render_completion(settings: Dict[str, object]) -> None:
         st.warning(f"### {ui.CLINICIAN_REVIEW_PROMPT}")
         spoken = f"{opener} {ui.CLINICIAN_REVIEW_PROMPT}".strip()
     else:
-        
         if opener:
             st.markdown(ui.agent_bubble(opener), unsafe_allow_html=True)
         st.success(f"### ✅ {ui.COMPLETION_PROMPT}")
@@ -1466,7 +1298,6 @@ def render_completion(settings: Dict[str, object]) -> None:
         components.html(ui.speak_script(spoken, "completion"), height=0)
         st.session_state.spoken.add("completion")
 
-  
     transcript = st.session_state.transcript
     if (
         4 in st.session_state.results
@@ -1483,19 +1314,19 @@ def render_completion(settings: Dict[str, object]) -> None:
 
     offer_summary_download("#### Your takeaway", "summary_done")
 
-    st.caption(
-        # The tab strip was shortened to stop the first tab scrolling off the
-        # left edge, and this caption was left pointing at the old names.
-        "Open the **Results** and **Clinical** tabs above for the full picture."
-    )
-    if st.button("Start a new check-in"):
-        reset_all()
+    if st.button(
+        "View results", key="completion_view_results", type="primary",
+        use_container_width=True,
+        on_click=open_results_section,
+    ):
         st.rerun()
 
+    st.caption(
+        "Open the **Results** and **Clinical** tabs above for the full picture."
+    )
+    st.button("Start a new check-in", on_click=reset_all)
 
-# ---------------------------------------------------------------------------
-# Result views
-# ---------------------------------------------------------------------------
+
 def render_patient_view() -> None:
     st.markdown("### Your results")
     if not st.session_state.results and not st.session_state.finished:
@@ -1540,7 +1371,6 @@ def render_patient_view() -> None:
             f"- **{friendly[task.task_id]}** — "
             f"{'looks typical' if LEVEL_RANK.get(task.level, 0) <= 1 else 'worth a closer look'}"
         )
-
 
     offer_summary_download("#### Downloadable summary", "summary_results")
 
@@ -1601,7 +1431,6 @@ def render_clinical_view() -> None:
             )
     frame = pd.DataFrame(rows)
     if frame.empty:
-        
         st.caption(
             "No acoustic indicators were measured. Every task was skipped or "
             "could not be measured, so the assessment below rests on the "
@@ -1618,7 +1447,6 @@ def render_clinical_view() -> None:
 
     st.markdown("#### Simulated FHIR dispatch")
     bundle = build_bundle(assessment, patient_id)
-    
 
     comm = next(
         e["resource"] for e in bundle["entry"]
@@ -1653,10 +1481,8 @@ def render_clinical_view() -> None:
                 "hypothetical speech."
             )
 
-
     if st.session_state.log:
         with st.expander("Session log"):
-            
             for role, body in st.session_state.log:
                 who = {"agent": "Annie", "patient": "Patient"}.get(
                     role, "System"
@@ -1726,9 +1552,6 @@ def render_reference_view() -> None:
                 st.write(f"**{label}** — {value}")
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 def main() -> None:
     init_state()
     st.markdown(ui.CSS, unsafe_allow_html=True)
@@ -1741,23 +1564,25 @@ def main() -> None:
 
     settings = render_sidebar()
 
-    tab_flow, tab_patient, tab_clinical, tab_mri, tab_ref = st.tabs(
-        [
-           
-            "Check-in",
-            "Results",
-            "Clinical",
-            "MRI",
-            "Method",
-        ]
-    )
+    tab_names = ["Check-in", "Results", "Clinical", "MRI", "Method"]
+    st.session_state.setdefault("main_section", "Check-in")
+    if st.session_state.main_section == "Results":
+        tab_names = ["Results", "Check-in", "Clinical", "MRI", "Method"]
+    tab_flow, tab_patient, tab_clinical, tab_mri, tab_ref = st.tabs(tab_names)
 
     with tab_flow:
         step = int(st.session_state.step)
         if not st.session_state.welcome_done and step <= 4:
             render_welcome(settings)
         elif step <= 4:
-            render_task_step(step, settings)
+            task_labels = [f"Task {i}" for i in range(1, 5)]
+            st.session_state.setdefault("task_nav", f"Task {step}")
+            st.radio(
+                "Tasks", task_labels, horizontal=True, key="task_nav",
+                label_visibility="collapsed",
+                on_change=navigate_task_from_menu,
+            )
+            render_task_step(int(st.session_state.step), settings)
         elif step == 5:
             render_phq8_step(settings)
         else:
@@ -1775,3 +1600,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
