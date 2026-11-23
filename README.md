@@ -1,9 +1,11 @@
 # Auracare: Vocal Biomarker & Digital Triage Prototype
 
+Bridging the virtual care data gap through scalable bioacoustic AI, real-time clinical telemetry, and public health data engineering.
 
-Auracare is an early-detection screening and clinical triage platform that uses real-time vocal biomarkers, cognitive fluency metrics, and mood assessments to identify early signs of cognitive decline (such as Alzheimer's/MCI) and respiratory or mental health deterioration, routing high-risk patients to clinicians before acute crises occur. 
+Auracare is an enterprise-grade clinical telemetry platform designed to solve a critical blind spot in virtual care: the inability of remote clinicians to track real-time physiological, respiratory, and cognitive shifts during telehealth encounters. By combining real-time bioacoustic AI, motor speech agility metrics, and structured clinical risk stratification, Auracare empowers telehealth networks and Remote Patient Monitoring (RPM) providers to capture high-acuity data before acute crises occur.
+The initial clinical wedge focuses on early-detection screening for Alzheimer's disease and mild cognitive impairment (MCI), combining motor speech agility (pa-ta-ka), language fluency, and respiratory baselines via zero-friction browser audio capture. Because human voice simultaneously encodes neurological, respiratory, and psychiatric biomarkers, our modular architecture is built to scale horizontally into a multi-disease screening library—spanning Parkinson's, COPD, and behavioral health risk—transforming software from an administrative cost into a direct clinical profit center via stacked US reimbursement codes (RPM/RTM).
 
-The initial clinical wedge focuses on early-detection screening for Alzheimer's disease and mild cognitive impairment (MCI), combining motor speech agility (pa-ta-ka), language fluency and mood/respiratory baselines via real-time WebRTC audio capture. Because voice simultaneously encodes neurological, respiratory and psychiatric biomarkers, our modular architecture is built to expand into a multi-disease screening library (including Parkinson's, COPD and depression) using the same zero-friction check-in pipeline.
+
 
 [Link to App](https://auracare-bjocdkbkznmm2j7yc8h5sf.streamlit.app/)
 
