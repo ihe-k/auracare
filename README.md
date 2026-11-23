@@ -1,9 +1,10 @@
 # Auracare: Vocal Biomarker & Digital Triage Prototype
 
-Bridging the virtual care data gap through scalable bioacoustic AI, real-time clinical telemetry, and public health data engineering.
+Bridging the virtual care data gap through scalable bioacoustic AI, real-time clinical telemetry and public health data engineering.
 
-Auracare is an enterprise-grade clinical telemetry platform designed to solve a critical blind spot in virtual care: the inability of remote clinicians to track real-time physiological, respiratory, and cognitive shifts during telehealth encounters. By combining real-time bioacoustic AI, motor speech agility metrics, and structured clinical risk stratification, Auracare empowers telehealth networks and Remote Patient Monitoring (RPM) providers to capture high-acuity data before acute crises occur.
-The initial clinical wedge focuses on early-detection screening for Alzheimer's disease and mild cognitive impairment (MCI), combining motor speech agility (pa-ta-ka), language fluency, and respiratory baselines via zero-friction browser audio capture. Because human voice simultaneously encodes neurological, respiratory, and psychiatric biomarkers, our modular architecture is built to scale horizontally into a multi-disease screening library—spanning Parkinson's, COPD, and behavioral health risk—transforming software from an administrative cost into a direct clinical profit center via stacked US reimbursement codes (RPM/RTM).
+Auracare is an enterprise-grade clinical telemetry platform designed to solve a critical blind spot in virtual care: the inability of remote clinicians to track real-time physiological, respiratory and cognitive shifts during telehealth encounters. By combining real-time bioacoustic AI, motor speech agility metrics and structured clinical risk stratification, Auracare empowers telehealth networks and Remote Patient Monitoring (RPM) providers to capture high-acuity data before acute crises occur.
+
+The initial clinical wedge focuses on early-detection screening for Alzheimer's disease and mild cognitive impairment (MCI), combining motor speech agility (pa-ta-ka), language fluency and respiratory baselines via zero-friction browser audio capture. Because human voice simultaneously encodes neurological, respiratory and psychiatric biomarkers, our modular architecture is built to scale horizontally into a multi-disease screening library—spanning Parkinson's, COPD and behavioural health risk—transforming software from an administrative cost into a direct clinical profit center via stacked US reimbursement codes (RPM/RTM).
 
 
 
