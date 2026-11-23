@@ -103,7 +103,6 @@ def init_state() -> None:
         "welcome_done": False,
         "diagnostic_summary": None,
         "diagnostic_pdf": None,
-        "main_section": "Check-in",
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -134,8 +133,6 @@ def reset_all() -> None:
         "diagnostic_summary", "diagnostic_pdf",
     ):
         st.session_state.pop(key, None)
-    st.session_state["main_section"] = "Check-in"
-    st.session_state["task_nav"] = "Task 1"
     init_state()
 
 
@@ -261,10 +258,10 @@ def render_sidebar() -> Dict[str, object]:
         f"Severity model: {'found' if found['severity_model'] else 'not found'}"
     )
 
-    st.sidebar.button(
-        "\U0001f501 Start over", type="secondary",
-        use_container_width=True, on_click=reset_all,
-    )
+    if st.sidebar.button("\U0001f501 Start over", type="secondary",
+                         use_container_width=True):
+        reset_all()
+        st.rerun()
 
     return {
         "stt_on": stt_on,
@@ -622,18 +619,7 @@ def leave_task(step: int) -> None:
     st.rerun()
 
 
-def navigate_task_from_menu() -> None:
-    selected = str(st.session_state.get("task_nav", "Task 1"))
-    target = int(selected.rsplit(" ", 1)[-1])
-    if target != int(st.session_state.step):
-        st.session_state.step = target
-        set_phase(target, flow.PHASE_PROMPT)
-
-
-def open_results_section() -> None:
-    st.session_state.main_section = "Results"
-
-
+@st.dialog("Task complete")
 def affirmation_dialog(step: int, settings: Dict[str, object]) -> None:
     played = play_clip(flow.media_for(step).affirm)
     spoken = flow.AFFIRMATION_TEXT.get(step)
@@ -642,10 +628,17 @@ def affirmation_dialog(step: int, settings: Dict[str, object]) -> None:
     elif spoken:
         st.markdown(ui.agent_bubble(spoken), unsafe_allow_html=True)
 
-    label = "Next"
+    label = next_step_label(step)
     if st.button(label, type="primary", use_container_width=True,
                  key=f"affirm_next_{step}"):
         leave_task(step)
+
+    if st.button("Show my measurements", use_container_width=True,
+                 key=f"affirm_stay_{step}",
+                 help="Stay on this task and read what was measured."):
+        st.session_state.affirm_seen.add(step)
+        set_phase(step, flow.PHASE_PROMPT)
+        st.rerun()
 
     if played and settings.get("auto_advance", True):
         clip = paths.find_animation(flow.media_for(step).affirm)
@@ -891,11 +884,10 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
         unsafe_allow_html=True,
     )
 
+    col_chat, col_cue = st.columns([1, 1], gap="medium")
+
     if phase == flow.PHASE_AFFIRM and step not in st.session_state.affirm_seen:
         affirmation_dialog(step, settings)
-        return
-
-    col_chat, col_cue = st.columns([1, 1], gap="medium")
 
     with col_chat:
         if phase == flow.PHASE_SILENCE_RETRY:
@@ -1054,34 +1046,13 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
         log_agent(ui.EMERGENCY_PROMPT)
 
     st.write("")
-    with st.container(key="task-footer"):
-        col_back, col_play, col_next = st.columns([1, 1, 1], gap="small")
-        if col_back.button(
-            "‹ Back", key=f"task_back_{step}", use_container_width=True,
-        ):
-            if step == 1:
-                st.session_state.welcome_done = False
-            else:
-                st.session_state.step = step - 1
-                set_phase(step - 1, flow.PHASE_PROMPT)
-            st.rerun()
-        with col_play:
-            if st.button(
-                "▶ Play again", key=f"task_play_{step}",
-                use_container_width=True,
-            ):
-                st.session_state.clarify_count[step] = (
-                    st.session_state.clarify_count.get(step, 0) + 1
-                )
-                set_phase(step, flow.PHASE_CLARIFY)
-                st.rerun()
-        if col_next.button(
-            "Next", type="primary", use_container_width=True,
-            key=f"continue_{step}",
-        ):
-            leave_task(step)
+    col_a, col_b = st.columns([1, 3])
+    label = next_step_label(step)
+    if col_a.button(label, type="primary", use_container_width=True,
+                    key=f"continue_{step}"):
+        leave_task(step)
     if reason:
-        st.caption(
+        col_b.caption(
             "You can continue the check-in; the intercept has already been "
             "recorded and appears in the clinical view."
         )
@@ -1300,17 +1271,12 @@ def render_completion(settings: Dict[str, object]) -> None:
 
     offer_summary_download("#### Your takeaway", "summary_done")
 
-    if st.button(
-        "View results", key="completion_view_results", type="primary",
-        use_container_width=True,
-        on_click=open_results_section,
-    ):
-        st.rerun()
-
     st.caption(
         "Open the **Results** and **Clinical** tabs above for the full picture."
     )
-    st.button("Start a new check-in", on_click=reset_all)
+    if st.button("Start a new check-in"):
+        reset_all()
+        st.rerun()
 
 
 def render_patient_view() -> None:
@@ -1550,25 +1516,22 @@ def main() -> None:
 
     settings = render_sidebar()
 
-    tab_names = ["Check-in", "Results", "Clinical", "MRI", "Method"]
-    st.session_state.setdefault("main_section", "Check-in")
-    if st.session_state.main_section == "Results":
-        tab_names = ["Results", "Check-in", "Clinical", "MRI", "Method"]
-    tab_flow, tab_patient, tab_clinical, tab_mri, tab_ref = st.tabs(tab_names)
+    tab_flow, tab_patient, tab_clinical, tab_mri, tab_ref = st.tabs(
+        [
+            "Check-in",
+            "Results",
+            "Clinical",
+            "MRI",
+            "Method",
+        ]
+    )
 
     with tab_flow:
         step = int(st.session_state.step)
         if not st.session_state.welcome_done and step <= 4:
             render_welcome(settings)
         elif step <= 4:
-            task_labels = [f"Task {i}" for i in range(1, 5)]
-            st.session_state.setdefault("task_nav", f"Task {step}")
-            st.radio(
-                "Tasks", task_labels, horizontal=True, key="task_nav",
-                label_visibility="collapsed",
-                on_change=navigate_task_from_menu,
-            )
-            render_task_step(int(st.session_state.step), settings)
+            render_task_step(step, settings)
         elif step == 5:
             render_phq8_step(settings)
         else:
@@ -1586,3 +1549,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
