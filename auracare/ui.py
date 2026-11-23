@@ -1,9 +1,6 @@
 """
 Presentation helpers for the Streamlit app: CSS, animated task cues, spoken
 prompts and the protocol script.
-
-Kept out of `app.py` so the protocol copy - the words the agent actually says -
-sits in one reviewable place rather than scattered through UI code.
 """
 
 from __future__ import annotations
@@ -25,7 +22,6 @@ from .risk import (
 
 @dataclass(frozen=True)
 class TaskScript:
-    """One step of the guided check-in."""
 
     task_id: int
     domain: str
@@ -267,6 +263,19 @@ CSS = """
       display: block;
   }
   .cue-hint { color: #94a3b8; font-size: 0.86rem; margin: 0; }
+
+  .st-key-task-footer [data-testid="stButton"] button {
+      background: #fff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+      font-weight: 700;
+      min-height: 44px;
+  }
+  .st-key-task-footer [data-testid="stButton"] button:hover {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-color: #94a3b8 !important;
+  }
 
   .circle-phonation, .circle-ddk {
       width: 160px; height: 160px; border-radius: 50%;
