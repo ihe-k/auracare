@@ -8,7 +8,7 @@ The initial clinical wedge focuses on early-detection screening for Alzheimer's 
 
 
 
-[Link to App](https://auracare-bjocdkbkznmm2j7yc8h5sf.streamlit.app/)
+[Link to App](https://auracare-bjocdkbkznmm2j7yc8h5sf.streamlit.app/?embed_options=dark_theme)
 
 > **Disclaimer:** This software is a research and engineering prototype for educational and demonstration purposes only. It is **not** a medical device and must not be used for clinical diagnosis or treatment decisions.
 
