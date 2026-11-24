@@ -14,10 +14,8 @@ from .risk import (
     NOT_MEASURED,
 )
 
-
 @dataclass(frozen=True)
 class TaskScript:
-    """One step of the guided check-in."""
 
     task_id: int
     domain: str
@@ -30,8 +28,8 @@ class TaskScript:
     cue_hint: str
     colour: str
     safety_check: str
-    animation: Optional[str] = None
 
+    animation: Optional[str] = None
 
 TASK_SCRIPTS: List[TaskScript] = [
     TaskScript(
@@ -39,12 +37,14 @@ TASK_SCRIPTS: List[TaskScript] = [
         domain="Respiratory & laryngeal health",
         window="0:00 - 0:25",
         record_seconds=10,
+
         prompt=(
             "For our first task, take a deep, comfortable breath. When the "
             "timer starts, say the 'ah' sound and hold it steadily for as "
             "long as you comfortably can until the bar fills up."
         ),
         instruction="Inhale as the circle grows, then hold **\u201cAhhh\u201d**.",
+
         cue_class="circle-phonation",
         cue_label="Task 1 \u00b7 Sustained phonation",
         cue_hint="Hold the note steadily until you run out of breath.",
@@ -60,6 +60,7 @@ TASK_SCRIPTS: List[TaskScript] = [
         domain="Expiratory airway dynamics",
         window="0:25 - 0:45",
         record_seconds=10,
+
         prompt=(
             "Next up is Task 2. For this task, we're going to evaluate your "
             "exhalation dynamics using your microphone. Please take a deep "
@@ -156,13 +157,11 @@ CRISIS_PROMPT = (
     "Samaritans are free on 116 123, any time."
 )
 
-
 def script_for(task_id: int) -> TaskScript:
     for script in TASK_SCRIPTS:
         if script.task_id == task_id:
             return script
     raise KeyError(f"no script for task {task_id}")
-
 
 CSS = """
 <style>
@@ -181,10 +180,12 @@ CSS = """
       margin-bottom: 10px; border-left: 4px solid #64748b; color: #cbd5e1;
       font-size: 0.86rem; font-family: ui-monospace, Menlo, Consolas, monospace;
   }
+
   .cut-points { margin-top: 6px; }
   .cut-row {
       display: flex; justify-content: space-between; align-items: baseline;
       gap: 12px; padding: 3px 0; font-size: 0.88rem;
+
       color: inherit; opacity: 0.85;
   }
   .cut-row span:last-child {
@@ -194,6 +195,7 @@ CSS = """
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; padding: 26px 18px; background: #0f172a;
       border-radius: 16px; border: 1px solid #334155; text-align: center;
+
       aspect-ratio: 354 / 402;
       min-height: 260px;
   }
@@ -206,10 +208,13 @@ CSS = """
       overflow: hidden;
       pointer-events: none;
   }
+
   .st-key-annie-voice.auracare-needs-tap [data-testid="stAudio"] {
       position: static;
+
       display: block;
       width: 100%;
+
       height: auto; min-height: 54px;
       opacity: 1;
       pointer-events: auto;
@@ -260,8 +265,23 @@ CSS = """
   }
   .cue-hint { color: #94a3b8; font-size: 0.86rem; margin: 0; }
 
+  .st-key-task-footer [data-testid="stButton"] button {
+      background: #fff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+      font-weight: 700;
+      min-height: 44px;
+  }
+  .st-key-task-footer [data-testid="stButton"] button:hover {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-color: #94a3b8 !important;
+  }
+
   .circle-phonation, .circle-ddk {
+
       width: 160px; height: 160px; border-radius: 50%;
+
       margin: 32px 0;
   }
   .circle-phonation {
@@ -283,6 +303,7 @@ CSS = """
   }
 
   .candles-exhale {
+
       width: 160px; height: 160px; margin: 32px 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
@@ -305,6 +326,7 @@ CSS = """
       transform-origin: 50% 100%;
       animation: blow-out 4s infinite ease-in-out;
   }
+
   .candle:nth-child(2) .flame { animation-delay: 0.12s; }
   .candle:nth-child(3) .flame { animation-delay: 0.24s; }
   .candle:nth-child(4) .flame { animation-delay: 0.36s; }
@@ -347,18 +369,16 @@ CSS = """
 </style>
 """
 
-
 def level_pill(level: str) -> str:
     colour = LEVEL_COLOUR.get(level, "#64748b")
     return f'<span class="pill" style="background:{colour}">{html.escape(level)}</span>'
 
-
 def agent_bubble(text: str) -> str:
     return (
+
         '<div class="aura-agent"><strong>Annie</strong><br>'
         f"{html.escape(text)}</div>"
     )
-
 
 def patient_bubble(text: str) -> str:
     return (
@@ -366,10 +386,8 @@ def patient_bubble(text: str) -> str:
         f"{html.escape(text)}</div>"
     )
 
-
 def system_bubble(text: str) -> str:
     return f'<div class="aura-system">{html.escape(text)}</div>'
-
 
 VOICE_CONTAINER_KEY = "annie-voice"
 VOICE_CONTAINER_CLASS = "st-key-annie-voice"
@@ -379,13 +397,14 @@ QUIET_CONTAINER_CLASS = "st-key-annie-voice-quiet"
 
 SPOKE_CONTAINER_KEY = "annie-spoke"
 SPOKE_CONTAINER_CLASS = "st-key-annie-spoke"
+
 QUIET_SPOKE_CONTAINER_KEY = "quiet-spoke"
 QUIET_SPOKE_CONTAINER_CLASS = "st-key-quiet-spoke"
+
 VOICE_NEEDS_TAP_CLASS = "auracare-needs-tap"
 
 CUE_CONTAINER_KEY = "task-cue"
 CUE_CONTAINER_CLASS = "st-key-task-cue"
-
 
 CUE_BODIES: Dict[str, str] = {
     "candles-exhale": (
@@ -399,8 +418,8 @@ CUE_BODIES: Dict[str, str] = {
     ),
 }
 
-
 def cue_html(script: TaskScript) -> str:
+
     if not script.cue_class:
         return ""
     body = CUE_BODIES.get(
@@ -414,8 +433,8 @@ def cue_html(script: TaskScript) -> str:
     </div>
     """
 
-
 def speak_script(text: str, nonce: str, rate: float = 0.95) -> str:
+
     payload = json.dumps(text)
     return f"""
     <script>
@@ -424,7 +443,7 @@ def speak_script(text: str, nonce: str, rate: float = 0.95) -> str:
         try {{
           if (window.sessionStorage.getItem(key)) return;
           window.sessionStorage.setItem(key, "1");
-        }} catch (e) {{ }}
+        }} catch (e) {{  }}
         const synth = window.speechSynthesis;
         if (!synth) return;
         synth.cancel();
@@ -437,8 +456,8 @@ def speak_script(text: str, nonce: str, rate: float = 0.95) -> str:
     </script>
     """
 
-
 def advance_when_clip_ends(nonce: str, button_text: str) -> str:
+
     return """
     <script>
       (function () {
@@ -461,20 +480,36 @@ def advance_when_clip_ends(nonce: str, button_text: str) -> str:
           return false;
         };
 
-        let attempts = 240;
-        const tick = function () {
-          const media = doc.querySelectorAll("video[autoplay], audio[autoplay]");
-          media.forEach(function (m) {
-            if (m.closest(".st-key-task-cue")) return;
-            if (m.dataset.auracareWatched === clip) return;
-            const seen = m.dataset.auracareWatched;
-            m.dataset.auracareWatched = clip;
-            if (m.ended) { if (!seen) press(); return; }
-            m.addEventListener("ended", press, {once: true});
-            m.addEventListener("pause", function () {
-              if (!m.ended && m.currentTime > 0.3) press();
-            });
+        const watch = function (m) {
+          if (m.dataset.auracareWatched === clip) return true;
+          m.dataset.auracareWatched = clip;
+          if (m.ended) { press(); return true; }
+          m.addEventListener("ended", press, {once: true});
+          m.addEventListener("pause", function () {
+            if (!m.ended && m.currentTime > 0.3) press();
           });
+          return true;
+        };
+
+        let attempts = 240;
+        let waited = 0;
+        const tick = function () {
+          const media = doc.querySelectorAll("video, audio");
+          for (const m of media) {
+            if (m.closest(".st-key-task-cue")) continue;
+            if (m.dataset.auracareNudged !== clip) continue;
+            watch(m);
+            return;
+          }
+          waited += 1;
+          if (waited > 20) {
+            for (const m of doc.querySelectorAll("video[autoplay], audio[autoplay]")) {
+              if (m.closest(".st-key-task-cue")) continue;
+              if (m.dataset.auracareWatched) continue;
+              watch(m);
+              return;
+            }
+          }
           if (--attempts > 0) window.setTimeout(tick, 500);
         };
         tick();
@@ -484,8 +519,8 @@ def advance_when_clip_ends(nonce: str, button_text: str) -> str:
         "__LABEL__", json.dumps(button_text)
     )
 
-
 def press_when_clip_plays(nonce: str, container_class: str) -> str:
+
     return """
     <script>
       (function () {
@@ -518,10 +553,47 @@ def press_when_clip_plays(nonce: str, container_class: str) -> str:
         "__SEL__", json.dumps("." + str(container_class))
     )
 
+def keep_videos_inline() -> str:
+
+    return """
+    <script>
+      (function () {
+        const win = window.parent || window;
+        const doc = win.document;
+        const inline = function (m) {
+          if (!m || m.tagName !== "VIDEO") return;
+          if (m.dataset.auracareInline === "1") return;
+          m.dataset.auracareInline = "1";
+          m.playsInline = true;
+          m.setAttribute("playsinline", "");
+          m.setAttribute("webkit-playsinline", "");
+        };
+        const sweep = function (root) {
+          if (!root || !root.querySelectorAll) return;
+          if (root.tagName === "VIDEO") inline(root);
+          root.querySelectorAll("video").forEach(inline);
+        };
+        sweep(doc);
+        try {
+          if (win.__auracareInlineObserver) {
+            win.__auracareInlineObserver.disconnect();
+          }
+        } catch (e) {  }
+        const obs = new MutationObserver(function (records) {
+          for (const r of records) {
+            r.addedNodes.forEach(sweep);
+          }
+        });
+        obs.observe(doc.body, {childList: true, subtree: true});
+        win.__auracareInlineObserver = obs;
+      })();
+    </script>
+    """
 
 def press_when_quiet_clip_plays(
     nonce: str, container_class: str, fallback_ms: int = 3000
 ) -> str:
+
     return """
     <script>
       (function () {
@@ -553,8 +625,8 @@ def press_when_quiet_clip_plays(
         "__SEL__", json.dumps("." + str(container_class))
     ).replace("__FALLBACK__", str(int(fallback_ms)))
 
-
 def autoplay_nudge(nonce: str) -> str:
+
     return """
     <script>
       (function () {
@@ -584,8 +656,13 @@ def autoplay_nudge(nonce: str) -> str:
             if (!src) return;
             if (m.dataset.auracareNudged === clip) return;
             m.dataset.auracareNudged = clip;
+            if (m.tagName === "VIDEO") {
+              m.playsInline = true;
+              m.setAttribute("playsinline", "");
+              m.setAttribute("webkit-playsinline", "");
+            }
             if (m.currentTime > 0.05 || m.ended) {
-              try { m.currentTime = 0; } catch (e) { }
+              try { m.currentTime = 0; } catch (e) {  }
             }
             const started = m.play();
             if (started && started.catch) {
@@ -634,13 +711,11 @@ def autoplay_nudge(nonce: str) -> str:
     </script>
     """.replace("__CLIP__", json.dumps(str(nonce)))
 
-
 def stop_speech() -> str:
     return (
         "<script>if (window.speechSynthesis) window.speechSynthesis.cancel();"
         "</script>"
     )
-
 
 def progress_dots(current: int, total: int, done: Dict[int, bool]) -> str:
     out = []
@@ -656,13 +731,12 @@ def progress_dots(current: int, total: int, done: Dict[int, bool]) -> str:
         )
     return "".join(out)
 
-
 def fmt_value(value: Optional[float], unit: str = "", nd: int = 2) -> str:
+
     if value is None:
         return "not measured"
     text = f"{value:.{nd}f}"
     return f"{text} {unit}".strip()
-
 
 __all__ = [
     "COMPLETION_PROMPT",
@@ -678,6 +752,7 @@ __all__ = [
     "SPOKE_CONTAINER_CLASS",
     "SPOKE_CONTAINER_KEY",
     "press_when_clip_plays",
+    "keep_videos_inline",
     "press_when_quiet_clip_plays",
     "VOICE_CONTAINER_CLASS",
     "VOICE_CONTAINER_KEY",
