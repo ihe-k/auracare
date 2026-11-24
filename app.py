@@ -87,40 +87,64 @@ def init_state() -> None:
         "intercepts": [],
         "finished": False,
         "spoken": set(),
+
+
         "skipped": set(),
+
+
         "phase": flow.PHASE_PROMPT,
         "phase_step": 1,
+
+
         "clip_epoch": 0,
+
+
         "opening_done": set(),
+
+
         "annie_spoke": set(),
+
+
         "quiet_spoke": set(),
+
+
         "affirm_seen": set(),
+
+
         "rejected": {},
+
         "silence_deadline": {},
+
+
         "clarify_count": {},
+
+
         "phq_intro_done": False,
         "phq_index": 0,
+
         "welcome_done": False,
+
+
+        "summary_attempted": False,
         "diagnostic_summary": None,
+
+
         "diagnostic_pdf": None,
+        "main_section": "Check-in",
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
-
 def log_agent(text: str) -> None:
     if not st.session_state.log or st.session_state.log[-1] != ("agent", text):
         st.session_state.log.append(("agent", text))
 
-
 def log_patient(text: str) -> None:
     st.session_state.log.append(("patient", text))
 
-
 def log_system(text: str) -> None:
     st.session_state.log.append(("system", text))
-
 
 def reset_all() -> None:
     for key in (
@@ -130,9 +154,11 @@ def reset_all() -> None:
         "silence_deadline", "clarify_count", "phq_intro_done", "phq_index",
         "welcome_done", "opening_done", "affirm_seen", "clip_epoch",
         "annie_spoke", "quiet_spoke",
-        "diagnostic_summary", "diagnostic_pdf",
+        "summary_attempted", "diagnostic_summary", "diagnostic_pdf",
     ):
         st.session_state.pop(key, None)
+    st.session_state["main_section"] = "Check-in"
+    st.session_state["task_nav"] = "Task 1"
     init_state()
 
 
@@ -219,6 +245,8 @@ def render_sidebar() -> Dict[str, object]:
             "These are the Kroenke 2009 cut-points. They are shown for "
             "transparency and are not intended to be tuned."
         )
+
+
         rows = "".join(
             '<div class="cut-row"><span>{}</span><span>{}</span></div>'.format(
                 html.escape(key.replace("_", " ")), html.escape(str(value))
@@ -227,6 +255,7 @@ def render_sidebar() -> Dict[str, object]:
         )
         st.markdown(f'<div class="cut-points">{rows}</div>',
                     unsafe_allow_html=True)
+
 
     if st.sidebar.button("Reset thresholds", use_container_width=True):
         thresholds.reset()
@@ -258,10 +287,10 @@ def render_sidebar() -> Dict[str, object]:
         f"Severity model: {'found' if found['severity_model'] else 'not found'}"
     )
 
-    if st.sidebar.button("\U0001f501 Start over", type="secondary",
-                         use_container_width=True):
-        reset_all()
-        st.rerun()
+    st.sidebar.button(
+        "\U0001f501 Start over", type="secondary",
+        use_container_width=True, on_click=reset_all,
+    )
 
     return {
         "stt_on": stt_on,
@@ -274,13 +303,13 @@ def render_sidebar() -> Dict[str, object]:
 
 _UNSET = object()
 
-
 def analyse_task(
     task_id: int,
     raw: bytes,
     settings: Dict[str, object],
     transcript=_UNSET,
 ) -> None:
+
     fingerprint = hashlib.sha1(raw).hexdigest()
     if st.session_state.fingerprints.get(task_id) == fingerprint:
         return
@@ -314,8 +343,8 @@ def analyse_task(
     log_patient(f"(recorded Task {task_id}, {audio.duration_s:.1f} s)")
     log_system(summarise_result(task_id, result))
 
-
 def summarise_result(task_id: int, result) -> str:
+
     if task_id == 1:
         return (
             f"telemetry · phonation {ui.fmt_value(result.phonation_duration_s, 's')}"
@@ -335,6 +364,8 @@ def summarise_result(task_id: int, result) -> str:
             f" · {result.n_syllables} syllables"
             f" · rhythm CV {ui.fmt_value(result.rhythm_cv, '', 3)}"
         )
+
+
     return (
         f"telemetry · pause ratio {ui.fmt_value(result.pause_ratio, '', 3)}"
         f" · speech rate {ui.fmt_value(result.speech_rate_sylls, 'syll/s')}"
@@ -347,8 +378,8 @@ def summarise_result(task_id: int, result) -> str:
         f"{ui.fmt_value(result.longest_unfilled_pause_s, 's')}"
     )
 
-
 def current_assessment():
+
     return assess_screening(
         st.session_state.results.get(1),
         st.session_state.results.get(2),
@@ -358,8 +389,8 @@ def current_assessment():
         st.session_state.thresholds,
     )
 
-
 def build_diagnostic_summary() -> None:
+
     voice = getattr(st.session_state.results.get(1), "voice", None)
     try:
         summary = generate_diagnostic_summary(
@@ -372,17 +403,28 @@ def build_diagnostic_summary() -> None:
             patient_id=st.session_state.patient_id,
             assessment=current_assessment(),
         )
+
+
         st.session_state.diagnostic_summary = summary
         st.session_state.diagnostic_pdf = render_pdf(summary)
     except Exception as exc:
+
         log_system(f"summary could not be prepared: {exc}")
         st.session_state.diagnostic_summary = None
         st.session_state.diagnostic_pdf = None
 
-
 def offer_summary_download(heading: str, key: str) -> None:
+
     summary = st.session_state.get("diagnostic_summary")
     data = st.session_state.get("diagnostic_pdf")
+    if (not summary or not data) and st.session_state.get("finished"):
+
+
+        if not st.session_state.get("summary_attempted"):
+            st.session_state.summary_attempted = True
+            build_diagnostic_summary()
+            summary = st.session_state.get("diagnostic_summary")
+            data = st.session_state.get("diagnostic_pdf")
     if not summary or not data:
         return
     st.markdown(heading)
@@ -400,8 +442,8 @@ def offer_summary_download(heading: str, key: str) -> None:
     )
     offer_summary_email(key)
 
-
 def offer_summary_email(key: str) -> None:
+
     summary = st.session_state.get("diagnostic_summary")
     if not summary:
         return
@@ -426,8 +468,8 @@ def offer_summary_email(key: str) -> None:
             "want the full page."
         )
 
-
 def check_intercept(task_id: int) -> Optional[str]:
+
     assessment = current_assessment()
     task = assessment.task(task_id)
     if task is not None and task.intercept_triggered:
@@ -436,6 +478,7 @@ def check_intercept(task_id: int) -> Optional[str]:
 
 
 def current_phase(step: int) -> str:
+
     if st.session_state.get("phase_step") != step:
         st.session_state.phase_step = step
         st.session_state.phase = flow.PHASE_PROMPT
@@ -443,40 +486,48 @@ def current_phase(step: int) -> str:
     phase = str(st.session_state.get("phase") or flow.PHASE_PROMPT)
     return phase if phase in flow.PHASES else flow.PHASE_PROMPT
 
-
 def clip_nonce(clip) -> str:
+
     return f"{clip.name}#{st.session_state.get('clip_epoch', 0)}"
 
-
 def bump_clip_epoch() -> None:
+
     st.session_state.clip_epoch = st.session_state.get("clip_epoch", 0) + 1
 
-
 def set_phase(step: int, phase: str) -> None:
+
     st.session_state.phase = phase
     st.session_state.phase_step = step
+
+
     bump_clip_epoch()
+
+
     st.session_state.silence_deadline.pop(step, None)
 
-
 def rejection_reason(step: int) -> Optional[str]:
+
     entry = st.session_state.rejected.get(step)
     return entry[1] if entry else None
 
 
 AUDIO_SUFFIXES = (".mp3", ".wav", ".m4a", ".ogg", ".opus")
 
-
 def play_clip(
     filename: Optional[str], *, autoplay: bool = True,
     discreet: bool = False, hand_back: bool = True,
 ) -> bool:
+
     clip = paths.find_animation(filename)
     if clip is None:
         return False
     if clip.suffix.lower() in AUDIO_SUFFIXES:
         fmt = "audio/mpeg" if clip.suffix.lower() == ".mp3" else "audio/wav"
+
+
         if discreet:
+
+
             key = (ui.VOICE_CONTAINER_KEY if hand_back
                    else ui.QUIET_CONTAINER_KEY)
             with st.container(key=key):
@@ -486,6 +537,8 @@ def play_clip(
         if autoplay:
             components.html(ui.autoplay_nudge(clip_nonce(clip)), height=0)
         return True
+
+
     st.video(str(clip), autoplay=autoplay)
     if autoplay:
         components.html(ui.autoplay_nudge(clip_nonce(clip)), height=0)
@@ -494,6 +547,8 @@ def play_clip(
 
 @st.fragment(run_every=2.0)
 def quiet_watchdog(step: int, deadline: float) -> None:
+
+
     if int(st.session_state.get("step", 0) or 0) != step:
         return
     if st.session_state.get("phase_step") != step:
@@ -504,6 +559,7 @@ def quiet_watchdog(step: int, deadline: float) -> None:
         return
     if step in st.session_state.get("results", {}):
         return
+
     if step not in st.session_state.get("opening_done", set()):
         return
     if step not in st.session_state.get("annie_spoke", set()):
@@ -515,10 +571,10 @@ def quiet_watchdog(step: int, deadline: float) -> None:
     set_phase(step, flow.PHASE_SILENCE_RETRY)
     st.rerun(scope="app")
 
-
 def annie_has_spoken(
     step: int, script: ui.TaskScript, settings: Dict[str, object]
 ) -> bool:
+
     if not settings.get("watch_for_silence", True):
         return False
     if step in st.session_state.annie_spoke:
@@ -537,8 +593,8 @@ def annie_has_spoken(
     )
     return False
 
-
 def arm_quiet_watchdog(step: int, settings: Dict[str, object]) -> None:
+
     if not settings.get("watch_for_silence", True):
         return
     deadline = st.session_state.silence_deadline.get(step)
@@ -549,6 +605,7 @@ def arm_quiet_watchdog(step: int, settings: Dict[str, object]) -> None:
 
 
 def handle_recording(step: int, raw: bytes, settings: Dict[str, object]) -> None:
+
     fingerprint = hashlib.sha1(raw).hexdigest()
     if st.session_state.fingerprints.get(step) == fingerprint:
         return
@@ -569,6 +626,7 @@ def handle_recording(step: int, raw: bytes, settings: Dict[str, object]) -> None
         log_system(f"task {step} not measured: {reason}")
         set_phase(step, flow.PHASE_SILENCE_RETRY)
         st.rerun()
+
 
     transcript = _UNSET
     if step == 4 and settings["stt_on"]:
@@ -595,7 +653,10 @@ def handle_recording(step: int, raw: bytes, settings: Dict[str, object]) -> None
 def render_prompt_phase(
     step: int, script: ui.TaskScript, settings: Dict[str, object]
 ) -> None:
+
     if play_clip(script.animation):
+
+
         return
     if settings["speak"]:
         nonce = f"task{step}"
@@ -606,39 +667,87 @@ def render_prompt_phase(
 
 READY_LABEL = "I am ready"
 
-
 def next_step_label(step: int) -> str:
+
     return "Continue to the questions" if step == 4 else f"Continue to Task {step + 1}"
 
+def render_task_controls(step: int, *, forward: str) -> None:
+
+    st.write("")
+    with st.container(key="task-footer"):
+        widths = [1, 1, 1] if forward != "none" else [1, 1]
+        cols = st.columns(widths, gap="small")
+        col_back, col_play = cols[0], cols[1]
+        col_next = cols[2] if forward != "none" else None
+        if col_back.button(
+            "‹ Back", key=f"task_back_{step}", use_container_width=True,
+        ):
+            if step == 1:
+                st.session_state.welcome_done = False
+            else:
+                st.session_state.step = step - 1
+                set_phase(step - 1, flow.PHASE_PROMPT)
+            st.rerun()
+        if col_play.button(
+            "▶ Play again", key=f"task_play_{step}",
+            use_container_width=True,
+        ):
+            st.session_state.clarify_count[step] = (
+                st.session_state.clarify_count.get(step, 0) + 1
+            )
+            set_phase(step, flow.PHASE_CLARIFY)
+            st.rerun()
+        if forward == "next":
+            if col_next.button(
+                "Next ›", type="primary", use_container_width=True,
+                key=f"continue_{step}",
+            ):
+                leave_task(step)
+        elif forward == "skip":
+            if col_next.button(
+                f"Skip Task {step} ›", key=f"skip_{step}",
+                use_container_width=True,
+            ):
+                st.session_state.skipped.add(step)
+                st.session_state.step = step + 1
+                st.rerun()
 
 def leave_task(step: int) -> None:
+
     st.session_state.affirm_seen.add(step)
+
     st.session_state.silence_deadline.pop(step, None)
     st.session_state.step = step + 1
     set_phase(step + 1, flow.PHASE_PROMPT)
     st.rerun()
 
+def navigate_task_from_menu() -> None:
 
-@st.dialog("Task complete")
+    selected = str(st.session_state.get("task_nav", "Task 1"))
+    target = int(selected.rsplit(" ", 1)[-1])
+    if target != int(st.session_state.step):
+        st.session_state.step = target
+        set_phase(target, flow.PHASE_PROMPT)
+
+def open_results_section() -> None:
+
+    st.session_state.main_section = "Results"
+
 def affirmation_dialog(step: int, settings: Dict[str, object]) -> None:
+
     played = play_clip(flow.media_for(step).affirm)
     spoken = flow.AFFIRMATION_TEXT.get(step)
     if not played:
         st.success(spoken or "Thank you, that is recorded.")
     elif spoken:
+
+
         st.markdown(ui.agent_bubble(spoken), unsafe_allow_html=True)
 
-    label = next_step_label(step)
+    label = "Next"
     if st.button(label, type="primary", use_container_width=True,
                  key=f"affirm_next_{step}"):
         leave_task(step)
-
-    if st.button("Show my measurements", use_container_width=True,
-                 key=f"affirm_stay_{step}",
-                 help="Stay on this task and read what was measured."):
-        st.session_state.affirm_seen.add(step)
-        set_phase(step, flow.PHASE_PROMPT)
-        st.rerun()
 
     if played and settings.get("auto_advance", True):
         clip = paths.find_animation(flow.media_for(step).affirm)
@@ -646,10 +755,11 @@ def affirmation_dialog(step: int, settings: Dict[str, object]) -> None:
             ui.advance_when_clip_ends(clip_nonce(clip), label), height=0
         )
 
-
 def quiet_voice_started() -> bool:
+
     clip = paths.find_animation(flow.QUIET_RETRY_AUDIO)
     if clip is None:
+
         return True
     nonce = clip_nonce(clip)
     if nonce in st.session_state.quiet_spoke:
@@ -664,9 +774,11 @@ def quiet_voice_started() -> bool:
     )
     return False
 
-
 def render_silence_retry_phase(step: int) -> None:
+
     play_clip(flow.QUIET_RETRY_AUDIO, discreet=True, hand_back=False)
+
+
     if quiet_voice_started():
         st.info(
             "It is quiet on my end. Take a breath whenever you are ready, "
@@ -694,13 +806,17 @@ def render_silence_retry_phase(step: int) -> None:
         set_phase(step, flow.PHASE_CLARIFY)
         st.rerun()
 
-
 def render_clarify_phase(
     step: int, script: ui.TaskScript, settings: Dict[str, object]
 ) -> None:
+
     media = flow.media_for(step)
+
+
     played = play_clip(media.clarify, discreet=True)
     if not played:
+
+
         played = play_clip(script.animation)
 
     reason = rejection_reason(step)
@@ -712,6 +828,8 @@ def render_clarify_phase(
     st.caption(script.cue_hint)
 
     if not played and settings["speak"]:
+
+
         count = st.session_state.clarify_count.get(step, 0)
         components.html(
             ui.speak_script(script.prompt, f"clarify{step}-{count}"), height=0
@@ -725,16 +843,18 @@ def render_clarify_phase(
         set_phase(step, flow.PHASE_PROMPT)
         st.rerun()
 
-
 def mic_context() -> mic.MicContext:
+
     try:
         url = st.context.url
     except Exception:
+
+
         url = None
     return mic.diagnose(url)
 
-
 def render_mic_warning() -> bool:
+
     context = mic_context()
     if not context.blocked:
         return False
@@ -746,8 +866,8 @@ def render_mic_warning() -> bool:
         )
     return True
 
-
 def render_mic_help() -> None:
+
     with st.expander("Microphone not working?"):
         for n, (title, detail) in enumerate(mic.TROUBLESHOOTING, start=1):
             st.markdown(f"**{n}. {title}**")
@@ -760,10 +880,11 @@ def render_mic_help() -> None:
 
 @st.cache_resource(show_spinner=False)
 def load_image_model(path: str, mtime: float):
+
     return alzheimer.load_model(Path(path))
 
-
 def render_imaging_view() -> None:
+
     st.markdown("### MRI dementia-stage classifier")
     st.caption(
         "Screening prototype, not a diagnosis. This is the classifier from "
@@ -808,6 +929,7 @@ def render_imaging_view() -> None:
                 for name, value in prediction.probabilities:
                     st.write(f"{name} - {value:.1f}%")
 
+
                 if len(prediction.probabilities) > 1:
                     gap = (
                         prediction.probabilities[0][1]
@@ -842,10 +964,13 @@ def render_imaging_view() -> None:
 
 
 def render_welcome(settings: Dict[str, object]) -> None:
+
     st.markdown(f"### {ui.WELCOME_HEADING}")
 
     clip = paths.find_animation(paths.INTRO_ANIMATION)
     if clip is not None:
+
+
         _, mid, _ = st.columns([1, 2, 1])
         with mid:
             st.video(str(clip), autoplay=True)
@@ -865,29 +990,33 @@ def render_welcome(settings: Dict[str, object]) -> None:
         "can skip anything that will not work for you."
     )
 
+
     render_mic_warning()
 
     if st.button("Begin the check-in", type="primary", key="welcome_begin"):
         st.session_state.welcome_done = True
         st.rerun()
 
-
 def render_task_step(step: int, settings: Dict[str, object]) -> None:
     script = ui.script_for(step)
     done = {i: i in st.session_state.results for i in range(1, 5)}
     phase = current_phase(step)
 
+
     st.markdown(
         ui.progress_dots(step, 4, done)
-        + f"&nbsp;&nbsp;<small>Task {step} of 4 &middot; target window "
-          f"{script.window}</small>",
+        + f"&nbsp;&nbsp;<small>Task {step} of 4</small>",
         unsafe_allow_html=True,
     )
 
-    col_chat, col_cue = st.columns([1, 1], gap="medium")
 
     if phase == flow.PHASE_AFFIRM and step not in st.session_state.affirm_seen:
         affirmation_dialog(step, settings)
+        return
+
+
+    col_chat, col_cue = st.columns([1, 1], gap="medium")
+
 
     with col_chat:
         if phase == flow.PHASE_SILENCE_RETRY:
@@ -898,6 +1027,7 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
             render_prompt_phase(step, script, settings)
 
         opening = step not in st.session_state.opening_done
+
 
         log_agent(script.prompt)
         st.markdown(ui.agent_bubble(script.prompt), unsafe_allow_html=True)
@@ -911,6 +1041,8 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
         render_mic_warning()
 
         if opening and phase == flow.PHASE_PROMPT:
+
+
             if st.button(
                 READY_LABEL,
                 key=f"ready_{step}",
@@ -928,9 +1060,12 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
                     height=0,
                 )
             elif clip is None:
+
                 st.session_state.opening_done.add(step)
                 st.rerun()
         else:
+
+
             col_rec, col_help = st.columns([2, 1], gap="medium")
             with col_rec:
                 raw_file = st.audio_input(
@@ -938,6 +1073,8 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
                     label_visibility="collapsed",
                 )
             with col_help:
+
+
                 st.write("")
                 if st.button(
                     "Say that again",
@@ -964,14 +1101,24 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
                 arm_quiet_watchdog(step, settings)
 
     with col_cue:
+
+
         supplied = paths.find_task_visual(script.task_id)
         if supplied is not None:
+
+
             with st.container(key=ui.CUE_CONTAINER_KEY):
                 if supplied.suffix.lower() in (".mp4", ".webm"):
+
+
                     st.video(str(supplied), autoplay=True, loop=True,
                              muted=True)
                 else:
+
+
                     st.image(str(supplied))
+
+
             st.markdown(
                 f'<div class="cue-title" style="color:{script.colour}">'
                 f"{script.cue_label}</div>",
@@ -996,9 +1143,15 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
                 )
         st.caption(f"**Safety check:** {script.safety_check}")
 
+
     result = st.session_state.results.get(step)
     if result is None:
+
+
         if opening and phase == flow.PHASE_PROMPT:
+
+
+            render_task_controls(step, forward="none")
             return
         st.caption(
             "Record this task to see your measurements and continue. "
@@ -1006,14 +1159,7 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
             "the check-in still runs, and this task is reported as not "
             "attempted."
         )
-        if st.button(
-            f"Skip Task {step}",
-            key=f"skip_{step}",
-            type="secondary",
-        ):
-            st.session_state.skipped.add(step)
-            st.session_state.step = step + 1
-            st.rerun()
+        render_task_controls(step, forward="skip")
         return
 
     quality = st.session_state.quality.get(step)
@@ -1045,20 +1191,15 @@ def render_task_step(step: int, settings: Dict[str, object]) -> None:
                 st.session_state.spoken.add(nonce)
         log_agent(ui.EMERGENCY_PROMPT)
 
-    st.write("")
-    col_a, col_b = st.columns([1, 3])
-    label = next_step_label(step)
-    if col_a.button(label, type="primary", use_container_width=True,
-                    key=f"continue_{step}"):
-        leave_task(step)
+    render_task_controls(step, forward="next")
     if reason:
-        col_b.caption(
+        st.caption(
             "You can continue the check-in; the intercept has already been "
             "recorded and appears in the clinical view."
         )
 
-
 def render_task_metrics(task_id: int, result) -> None:
+
     st.markdown(f"##### Task {task_id} measurements")
     assessment = current_assessment()
     task = assessment.task(task_id)
@@ -1096,8 +1237,8 @@ def render_task_metrics(task_id: int, result) -> None:
                 "Acoustic measures above are unaffected."
             )
 
-
 def render_phq8_intro(settings: Dict[str, object]) -> None:
+
     st.markdown(f"### {INTRO_HEADING}")
 
     clip = paths.find_animation(paths.PHQ8_INTRO_ANIMATION)
@@ -1108,6 +1249,7 @@ def render_phq8_intro(settings: Dict[str, object]) -> None:
             components.html(ui.autoplay_nudge(clip_nonce(clip)), height=0)
 
     st.markdown(ui.agent_bubble(INTRO_SCRIPT), unsafe_allow_html=True)
+
 
     if (
         settings["speak"]
@@ -1126,17 +1268,16 @@ def render_phq8_intro(settings: Dict[str, object]) -> None:
         st.session_state.phq_intro_done = True
         st.rerun()
 
-
 def goto_phq8_question(index: int) -> None:
+
     st.session_state.phq_index = index
     st.session_state.spoken.discard(f"phq_q_{index}")
 
-
 def save_phq8_answer(key: str, value) -> None:
+
     responses = dict(st.session_state.phq8_responses)
     responses[key] = value
     st.session_state.phq8_responses = responses
-
 
 def advance_phq8(index: int) -> None:
     if index < len(PHQ8_ITEMS) - 1:
@@ -1147,11 +1288,12 @@ def advance_phq8(index: int) -> None:
         build_diagnostic_summary()
     st.rerun()
 
-
 def render_phq8_step(settings: Dict[str, object]) -> None:
+
     if not st.session_state.phq_intro_done:
         render_phq8_intro(settings)
         return
+
 
     index = max(0, min(int(st.session_state.phq_index), len(PHQ8_ITEMS) - 1))
     item = PHQ8_ITEMS[index]
@@ -1163,6 +1305,7 @@ def render_phq8_step(settings: Dict[str, object]) -> None:
     st.markdown(f"### {item.text}")
     st.write("")
 
+
     if not play_clip(flow.question_audio(item.key)) and settings["speak"]:
         nonce = f"phq_q_{index}"
         if nonce not in st.session_state.spoken:
@@ -1170,6 +1313,7 @@ def render_phq8_step(settings: Dict[str, object]) -> None:
                 ui.speak_script(item.spoken_prompt, nonce), height=0
             )
             st.session_state.spoken.add(nonce)
+
 
     for value, label in enumerate(RESPONSE_OPTIONS):
         if st.button(
@@ -1201,10 +1345,11 @@ def render_phq8_step(settings: Dict[str, object]) -> None:
         "such, or withheld if fewer than six are answered."
     )
 
-
 def render_completion(settings: Dict[str, object]) -> None:
+
     assessment = current_assessment()
     escalating = assessment.primary_pathway != PATHWAY_ROUTINE
+
 
     urgent_pathways = (
         PATHWAY_EMERGENCY in assessment.pathways
@@ -1222,11 +1367,13 @@ def render_completion(settings: Dict[str, object]) -> None:
         if closing is None:
             closing = paths.find_animation(paths.CLOSING_ANIMATION)
 
+
     if closing is not None:
         _, mid, _ = st.columns([1, 1, 1])
         with mid:
             st.video(str(closing), autoplay=True)
             components.html(ui.autoplay_nudge(clip_nonce(closing)), height=0)
+
 
     urgent = (
         PATHWAY_EMERGENCY in assessment.pathways
@@ -1246,6 +1393,8 @@ def render_completion(settings: Dict[str, object]) -> None:
         st.warning(f"### {ui.CLINICIAN_REVIEW_PROMPT}")
         spoken = f"{opener} {ui.CLINICIAN_REVIEW_PROMPT}".strip()
     else:
+
+
         if opener:
             st.markdown(ui.agent_bubble(opener), unsafe_allow_html=True)
         st.success(f"### ✅ {ui.COMPLETION_PROMPT}")
@@ -1254,6 +1403,7 @@ def render_completion(settings: Dict[str, object]) -> None:
     if settings["speak"] and "completion" not in st.session_state.spoken:
         components.html(ui.speak_script(spoken, "completion"), height=0)
         st.session_state.spoken.add("completion")
+
 
     transcript = st.session_state.transcript
     if (
@@ -1271,12 +1421,19 @@ def render_completion(settings: Dict[str, object]) -> None:
 
     offer_summary_download("#### Your takeaway", "summary_done")
 
+    if st.button(
+        "View results", key="completion_view_results", type="primary",
+        use_container_width=True,
+        on_click=open_results_section,
+    ):
+        st.rerun()
+
     st.caption(
+
+
         "Open the **Results** and **Clinical** tabs above for the full picture."
     )
-    if st.button("Start a new check-in"):
-        reset_all()
-        st.rerun()
+    st.button("Start a new check-in", on_click=reset_all)
 
 
 def render_patient_view() -> None:
@@ -1325,7 +1482,6 @@ def render_patient_view() -> None:
         )
 
     offer_summary_download("#### Downloadable summary", "summary_results")
-
 
 def render_clinical_view() -> None:
     st.markdown("### Clinical / EHR view")
@@ -1383,6 +1539,8 @@ def render_clinical_view() -> None:
             )
     frame = pd.DataFrame(rows)
     if frame.empty:
+
+
         st.caption(
             "No acoustic indicators were measured. Every task was skipped or "
             "could not be measured, so the assessment below rests on the "
@@ -1399,6 +1557,7 @@ def render_clinical_view() -> None:
 
     st.markdown("#### Simulated FHIR dispatch")
     bundle = build_bundle(assessment, patient_id)
+
 
     comm = next(
         e["resource"] for e in bundle["entry"]
@@ -1435,12 +1594,13 @@ def render_clinical_view() -> None:
 
     if st.session_state.log:
         with st.expander("Session log"):
+
+
             for role, body in st.session_state.log:
                 who = {"agent": "Annie", "patient": "Patient"}.get(
                     role, "System"
                 )
                 st.markdown(f"**{who}** · {body}")
-
 
 def render_reference_view() -> None:
     st.markdown("### Method, thresholds and limitations")
@@ -1508,6 +1668,9 @@ def main() -> None:
     init_state()
     st.markdown(ui.CSS, unsafe_allow_html=True)
 
+
+    components.html(ui.keep_videos_inline(), height=0)
+
     st.title("\U0001fa7a Auracare: Multimodal Vocal & Cognitive Health Screening App")
     st.caption(
         "Four-domain bioacoustic check-in with PHQ-8. Screening prototype — "
@@ -1516,22 +1679,38 @@ def main() -> None:
 
     settings = render_sidebar()
 
-    tab_flow, tab_patient, tab_clinical, tab_mri, tab_ref = st.tabs(
-        [
-            "Check-in",
-            "Results",
-            "Clinical",
-            "MRI",
-            "Method",
-        ]
-    )
+    tab_names = ["Check-in", "Results", "Clinical", "MRI", "Method"]
+    st.session_state.setdefault("main_section", "Check-in")
+
+
+    if st.session_state.main_section == "Results":
+        tab_names = ["Results"] + [n for n in tab_names if n != "Results"]
+
+
+    panes = dict(zip(tab_names, st.tabs(tab_names)))
+    tab_flow = panes["Check-in"]
+    tab_patient = panes["Results"]
+    tab_clinical = panes["Clinical"]
+    tab_mri = panes["MRI"]
+    tab_ref = panes["Method"]
 
     with tab_flow:
         step = int(st.session_state.step)
         if not st.session_state.welcome_done and step <= 4:
             render_welcome(settings)
         elif step <= 4:
-            render_task_step(step, settings)
+
+
+            task_labels = [f"Task {i}" for i in range(1, 5)]
+
+
+            st.session_state["task_nav"] = f"Task {step}"
+            st.selectbox(
+                "Go to task", task_labels, key="task_nav",
+                label_visibility="collapsed",
+                on_change=navigate_task_from_menu,
+            )
+            render_task_step(int(st.session_state.step), settings)
         elif step == 5:
             render_phq8_step(settings)
         else:
@@ -1546,7 +1725,5 @@ def main() -> None:
     with tab_ref:
         render_reference_view()
 
-
 if __name__ == "__main__":
     main()
-
